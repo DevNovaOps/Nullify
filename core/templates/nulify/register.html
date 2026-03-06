@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — Nullify</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-bg-effects">
+            <div class="cyber-grid-bg"></div>
+            <div class="auth-orb auth-orb-1"></div>
+            <div class="auth-orb auth-orb-2"></div>
+            <div class="scanline-overlay"></div>
+        </div>
+
+        <div class="auth-theme-toggle">
+            <div class="theme-toggle-pill">
+                <button data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+                <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg></button>
+            </div>
+        </div>
+
+        <div class="auth-container animate-fade">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <svg width="48" height="48" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                        <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                        <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" fill="none"/>
+                <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/>
+                    </svg>
+                    <h1>Null<span>ify</span></h1>
+                </div>
+
+                <h2 class="auth-title">Create Account</h2>
+                <p class="auth-subtitle">Join the platform to protect your data</p>
+
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="post" action="{% url 'register' %}">
+                    {% csrf_token %}
+                    <div class="two-col-form">
+                        <div class="form-group">
+                            <label for="register-first-name">First Name</label>
+                            <input type="text" name="first_name" id="register-first-name" class="form-control" placeholder="First name">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-last-name">Last Name</label>
+                            <input type="text" name="last_name" id="register-last-name" class="form-control" placeholder="Last name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" name="username" id="register-username" class="form-control" placeholder="Choose a username" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" name="email" id="register-email" class="form-control" placeholder="your@email.com" autocomplete="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-role">Role</label>
+                        <select name="role" id="register-role" class="form-control">
+                            <option value="admin">Admin</option>
+                            <option value="user">Standard User</option>
+                        </select>
+                    </div>
+                    <div class="two-col-form">
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" name="password" id="register-password" class="form-control" placeholder="Password" autocomplete="new-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-confirm">Confirm</label>
+                            <input type="password" name="confirm_password" id="register-confirm" class="form-control" placeholder="Confirm" autocomplete="new-password" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full btn-lg" style="margin-top:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    Already have an account? <a href="{% url 'login' %}">Sign in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/base.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+{% if user.role == 'admin' %}
+<!-- Admin Dashboard -->
+<div class="stats-grid animate-fade">
+    <div class="stat-card">
+        <div class="stat-icon cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        </div>
+        <div>
+            <div class="stat-value font-orbitron">{{ total_files }}</div>
+            <div class="stat-label">Total Files</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <div>
+            <div class="stat-value font-orbitron">{{ total_pii }}</div>
+            <div class="stat-label">PII Detected</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+        </div>
+        <div>
+            <div class="stat-value font-orbitron">{{ total_sanitized }}</div>
+            <div class="stat-label">Sanitized</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+            <div class="stat-value font-orbitron">{{ high_risk }}</div>
+            <div class="stat-label">High Risk</div>
+        </div>
+    </div>
+</div>
+
+<div class="two-col" style="margin-top:20px;">
+    <!-- Recent Files -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Recent Files</h3>
+            <a href="{% url 'file_list' %}" class="btn btn-ghost btn-sm">View All →</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+            {% if recent_files %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Type</th>
+                        <th>PII</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in recent_files %}
+                    <tr>
+                        <td><a href="{% url 'file_detail' f.id %}" style="font-weight:600;">{{ f.original_filename|truncatechars:25 }}</a></td>
+                        <td><span class="badge badge-cyan">{{ f.file_type|upper }}</span></td>
+                        <td>{{ f.pii_count }}</td>
+                        <td>
+                            {% if f.status == 'completed' %}
+                            <span class="badge badge-success">Done</span>
+                            {% elif f.status == 'processing' %}
+                            <span class="badge badge-warning">Processing</span>
+                            {% elif f.status == 'failed' %}
+                            <span class="badge badge-danger">Failed</span>
+                            {% else %}
+                            <span class="badge badge-info">{{ f.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                <h3>No files yet</h3>
+                <p>Upload your first file to get started</p>
+                <a href="{% url 'upload' %}" class="btn btn-primary">Upload File</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PII Chart (Matplotlib) -->
+    <div class="card">
+        <div class="card-header">
+            <h3>PII Distribution</h3>
+        </div>
+        <div class="card-body" style="text-align:center;">
+            {% if pii_chart %}
+            <img src="{{ pii_chart }}" alt="PII Distribution Chart" class="chart-img" style="max-width:100%;height:auto;">
+            {% else %}
+            <div class="empty-state" style="padding:40px;">
+                <p class="text-muted">No PII data to display</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Standard User Dashboard -->
+<div class="card animate-fade">
+    <div class="card-header">
+        <h3>Available Sanitized Files</h3>
+        <span class="badge badge-cyan">{{ total_available }} total</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+        {% if sanitized_files %}
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Method</th>
+                    <th>Created</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sanitized_files %}
+                <tr>
+                    <td style="font-weight:600;">{{ s.original_file.original_filename|truncatechars:30 }}</td>
+                    <td><span class="badge badge-purple">{{ s.get_method_display }}</span></td>
+                    <td class="text-muted text-sm">{{ s.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'download_sanitized' s.id %}" class="btn btn-primary btn-sm">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Download
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            <h3>No sanitized files available</h3>
+            <p>Files will appear here after an admin processes them</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

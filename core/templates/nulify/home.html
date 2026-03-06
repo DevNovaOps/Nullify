@@ -1,0 +1,312 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nullify — PII Detection & Data Sanitization Platform</title>
+    <meta name="description" content="Detect and sanitize personally identifiable information from uploaded files. Secure your data with Nullify.">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    <!-- ══ Navbar ══ -->
+    <nav class="navbar" id="navbar">
+        <a href="{% url 'home' %}" class="navbar-brand">
+            <svg width="36" height="36" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" fill="none"/>
+                <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/>
+            </svg>
+            <h1>Null<span>ify</span></h1>
+        </a>
+
+        <div class="navbar-center">
+            <a href="{% url 'home' %}" class="active">Home</a>
+            <a href="{% url 'about' %}">About</a>
+            <a href="{% url 'contact' %}">Contact</a>
+            <a href="{% url 'privacy' %}">Privacy</a>
+        </div>
+
+        <div class="navbar-right">
+            <!-- Theme Toggle Pill -->
+            <div class="theme-toggle-pill">
+                <button data-theme="system" title="System">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <button data-theme="dark" title="Dark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                </button>
+                <button data-theme="light" title="Light">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                </button>
+            </div>
+
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline btn-sm">Dashboard</a>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">Log in</a>
+            <a href="{% url 'register' %}" class="btn btn-primary btn-sm">Get Started</a>
+            {% endif %}
+        </div>
+
+        <button class="mobile-menu-btn" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'about' %}">About</a>
+        <a href="{% url 'contact' %}">Contact</a>
+        <a href="{% url 'privacy' %}">Privacy</a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+        <a href="{% url 'register' %}">Get Started</a>
+        {% endif %}
+    </div>
+
+    <!-- ══ Hero ══ -->
+    <section class="hero">
+        <div class="hero-bg-effects">
+            <div class="cyber-grid-bg"></div>
+            <div class="hero-orb hero-orb-1"></div>
+            <div class="hero-orb hero-orb-2"></div>
+            <div class="hero-orb hero-orb-3"></div>
+            <div class="scanline-overlay"></div>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                PII Detection & Sanitization Platform
+            </div>
+
+            <h1 class="hero-title" style="font-weight:800;">
+                Detect. Sanitize.<br><span class="highlight">Protect Your Data.</span>
+            </h1>
+
+            <p class="hero-description">
+                Upload files and let Nullify automatically detect sensitive personal information using advanced pattern matching. Sanitize with masking, redaction, or tokenization.
+            </p>
+
+            <div class="hero-actions">
+                <a href="{% url 'register' %}" class="btn btn-primary btn-xl">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Get Started Free
+                </a>
+                <a href="{% url 'about' %}" class="btn btn-outline btn-xl">
+                    Learn More
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value" data-count="9" data-suffix="+">9+</div>
+                    <div class="hero-stat-label">PII Types Detected</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value" data-count="6" data-suffix="">6</div>
+                    <div class="hero-stat-label">File Formats</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value" data-count="3" data-suffix="">3</div>
+                    <div class="hero-stat-label">Sanitization Methods</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value" data-count="100" data-suffix="%">100%</div>
+                    <div class="hero-stat-label">Rule-Based</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ Features ══ -->
+    <section class="features-section">
+        <div class="cyber-grid-bg"></div>
+        <div class="section-header reveal-on-scroll">
+            <div class="section-label">Features</div>
+            <h2 class="section-title">Why Choose <span class="text-gradient">Nullify</span>?</h2>
+            <p class="section-desc">Comprehensive PII detection and sanitization powered by regex pattern matching — no AI models, no data leaks.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon cyan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <h3 class="feature-title">Smart Detection</h3>
+                <p class="feature-desc">Detect emails, phone numbers, PAN, Aadhaar, credit cards, IPs, passports, DOBs, and UPI IDs automatically.</p>
+            </div>
+
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3 class="feature-title">3 Sanitization Methods</h3>
+                <p class="feature-desc">Choose between masking, redaction, or tokenization to protect sensitive data per your compliance needs.</p>
+            </div>
+
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon teal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                </div>
+                <h3 class="feature-title">Multi-Format Support</h3>
+                <p class="feature-desc">Process PDF, DOCX, TXT, CSV, SQL, and JSON files with intelligent text extraction.</p>
+            </div>
+
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon danger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <h3 class="feature-title">Risk Scoring</h3>
+                <p class="feature-desc">Every file gets a PII risk score so you can prioritize and respond to high-risk data exposure.</p>
+            </div>
+
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <h3 class="feature-title">Analytics Dashboard</h3>
+                <p class="feature-desc">Interactive charts and reports showing PII distribution, risk levels, and processing trends over time.</p>
+            </div>
+
+            <div class="card-cyber feature-card reveal-on-scroll">
+                <div class="feature-icon info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <h3 class="feature-title">Full Audit Trail</h3>
+                <p class="feature-desc">Complete audit logging of all user actions with timestamps and IP addresses for compliance tracking.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ How It Works ══ -->
+    <section class="how-section">
+        <div class="section-header reveal-on-scroll">
+            <div class="section-label">Workflow</div>
+            <h2 class="section-title">How It <span class="text-gradient">Works</span></h2>
+            <p class="section-desc">Four simple steps from upload to sanitized data</p>
+        </div>
+
+        <div class="steps-container reveal-on-scroll">
+            <div class="step-card">
+                <div class="step-number">01</div>
+                <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <h4 class="step-title">Upload Files</h4>
+                <p class="step-desc">Drag & drop your files into the secure upload zone</p>
+                <div class="step-connector"></div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">02</div>
+                <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <h4 class="step-title">Detect PII</h4>
+                <p class="step-desc">Engine scans for 9+ types of sensitive data</p>
+                <div class="step-connector"></div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">03</div>
+                <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h4 class="step-title">Sanitize</h4>
+                <p class="step-desc">Mask, redact, or tokenize detected PII</p>
+                <div class="step-connector"></div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">04</div>
+                <div class="step-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <h4 class="step-title">Download</h4>
+                <p class="step-desc">Get sanitized files and PDF reports</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ PII Types ══ -->
+    <section class="pii-types-section">
+        <div class="section-header reveal-on-scroll">
+            <div class="section-label">Detection</div>
+            <h2 class="section-title">Supported <span class="text-gradient">PII Types</span></h2>
+        </div>
+        <div class="pii-grid reveal-on-scroll">
+            <div class="pii-type-card"><div class="pii-type-icon">📧</div><div class="pii-type-name">Email Addresses</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">📱</div><div class="pii-type-name">Phone Numbers</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">🪪</div><div class="pii-type-name">PAN Numbers</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">🔢</div><div class="pii-type-name">Aadhaar Numbers</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">🌐</div><div class="pii-type-name">IP Addresses</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">💳</div><div class="pii-type-name">Credit Cards</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">📅</div><div class="pii-type-name">Date of Birth</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">🛂</div><div class="pii-type-name">Passport Numbers</div></div>
+            <div class="pii-type-card"><div class="pii-type-icon">💸</div><div class="pii-type-name">UPI IDs</div></div>
+        </div>
+    </section>
+
+    <!-- ══ CTA ══ -->
+    <section class="cta-section">
+        <div class="cta-card reveal-on-scroll">
+            <h2 class="cta-title">Ready to Protect Your <span class="text-gradient">Data</span>?</h2>
+            <p class="cta-desc">Start detecting and sanitizing PII from your files today. No AI required, no data sent to the cloud.</p>
+            <div class="d-flex gap-12 justify-center">
+                <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Create Free Account</a>
+                <a href="{% url 'contact' %}" class="btn btn-outline btn-lg">Contact Us</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ Footer ══ -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <div class="footer-brand">
+                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                        <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                        <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                        <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" fill="none"/>
+                        <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/>
+                    </svg>
+                    <h2>Null<span>ify</span></h2>
+                </div>
+                <p class="footer-desc">Open-source PII Detection & Data Sanitization Platform. Detect, mask, and protect sensitive data using rule-based regex — no AI, no cloud dependency.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Product</h4>
+                <a href="{% url 'home' %}">Home</a>
+                <a href="{% url 'about' %}">About</a>
+                <a href="{% url 'register' %}">Get Started</a>
+                <a href="{% url 'login' %}">Login</a>
+            </div>
+            <div class="footer-col">
+                <h4>Features</h4>
+                <a href="#">PII Detection</a>
+                <a href="#">Data Sanitization</a>
+                <a href="#">Risk Scoring</a>
+                <a href="#">Batch Processing</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="{% url 'privacy' %}">Privacy Policy</a>
+                <a href="{% url 'contact' %}">Contact</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Nullify. All rights reserved. Built for Hackathon.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/home.js' %}"></script>
+</body>
+</html>

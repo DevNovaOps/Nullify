@@ -1,0 +1,122 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}{{ file.original_filename }} — Results{% endblock %}
+{% block page_title %}Scan Results{% endblock %}
+
+{% block content %}
+<div class="results-grid animate-fade">
+    <!-- Main Content -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- File Info -->
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ file.original_filename }}</h3>
+                <span class="badge badge-cyan">{{ file.file_type|upper }}</span>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-24 flex-wrap">
+                    <div><span class="text-muted text-sm">Uploaded</span><br><strong>{{ file.uploaded_at|date:"M d, Y H:i" }}</strong></div>
+                    <div><span class="text-muted text-sm">PII Found</span><br><strong class="text-cyan">{{ detections|length }}</strong></div>
+                    <div><span class="text-muted text-sm">Method</span><br><strong>{% if sanitized %}{{ sanitized.get_method_display }}{% else %}—{% endif %}</strong></div>
+                    <div><span class="text-muted text-sm">Risk Score</span><br><strong>{{ file.risk_score }}%</strong></div>
+                    <div><span class="text-muted text-sm">File Size</span><br><strong>{{ file.file_size|filesizeformat }}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        {% if user.role == 'admin' %}
+        <!-- PII Highlighted Preview -->
+        <div class="card">
+            <div class="card-header"><h3>PII Preview (Highlighted)</h3></div>
+            <div class="card-body">
+                <div class="text-preview">{{ highlighted_text|safe }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sanitized Output -->
+        {% if sanitized %}
+        <div class="card">
+            <div class="card-header"><h3>Sanitized Output</h3></div>
+            <div class="card-body">
+                <div class="text-preview">{{ sanitized.sanitized_text }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="results-sidebar">
+        <!-- Risk Meter -->
+        <div class="card-cyber" style="padding:28px;text-align:center;">
+            <h4 style="margin-bottom:16px;">Risk Assessment</h4>
+            <div class="risk-meter {% if file.risk_score >= 70 %}risk-high{% elif file.risk_score >= 30 %}risk-medium{% else %}risk-low{% endif %}" data-score="{{ file.risk_score }}" style="margin:0 auto;">
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle class="risk-meter-bg" cx="70" cy="70" r="60"/>
+                    <circle class="risk-meter-fill" cx="70" cy="70" r="60"/>
+                </svg>
+                <div class="risk-meter-label">
+                    <div class="risk-meter-value">{{ file.risk_score }}%</div>
+                    <div class="risk-meter-text">Risk</div>
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <span class="badge {% if file.risk_score >= 70 %}badge-danger{% elif file.risk_score >= 30 %}badge-warning{% else %}badge-success{% endif %}">
+                    {{ file.risk_level|title }} Risk
+                </span>
+            </div>
+        </div>
+
+        <!-- PII Summary Chart (Matplotlib) -->
+        {% if pii_summary_chart %}
+        <div class="card">
+            <div class="card-header"><h3>PII Breakdown</h3></div>
+            <div class="card-body" style="text-align:center;padding:12px;">
+                <img src="{{ pii_summary_chart }}" alt="PII Summary" style="max-width:100%;height:auto;">
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- PII Detail List -->
+        <div class="card">
+            <div class="card-header"><h3>PII Details ({{ detections|length }})</h3></div>
+            <div class="card-body" style="padding:0;">
+                <div class="detection-list">
+                    {% for pii_type, count in pii_summary.items %}
+                    <div class="detection-item">
+                        <span class="badge badge-purple">{{ pii_type }}</span>
+                        <span class="detection-value">{{ count }} found</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted" style="padding:20px;">No PII detected</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Downloads -->
+        <div class="card-cyber" style="padding:24px;">
+            <h4 style="margin-bottom:16px;">Downloads</h4>
+            <div class="d-flex flex-col gap-8">
+                {% for s in sanitized_versions %}
+                <a href="{% url 'download_sanitized' s.id %}" class="btn btn-primary w-full">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Sanitized ({{ s.get_method_display }})
+                </a>
+                {% endfor %}
+                {% if user.role == 'admin' %}
+                <a href="{% url 'download_original' file.id %}" class="btn btn-secondary w-full">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                    Original File
+                </a>
+                <a href="{% url 'download_report' file.id %}" class="btn btn-outline w-full">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    PDF Report
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

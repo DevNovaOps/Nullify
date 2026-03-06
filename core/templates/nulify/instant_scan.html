@@ -1,0 +1,86 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}Instant Scan{% endblock %}
+{% block page_title %}Instant PII Scan{% endblock %}
+
+{% block content %}
+<div class="two-col animate-fade">
+    <!-- Scan Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                Paste & Scan
+            </h3>
+        </div>
+        <div class="card-body">
+            <form id="instant-scan-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="instant-scan-text">Text to Scan</label>
+                    <textarea id="instant-scan-text" name="text" class="form-control" rows="12" placeholder="Paste your text here to instantly scan for PII...&#10;&#10;Example:&#10;John's email is john@example.com&#10;His PAN is ABCDE1234F&#10;Phone: +91-9876543210"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-full btn-lg">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    Scan for PII
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results / Info -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- Results (hidden by default) -->
+        <div id="scan-results" style="display:none;">
+            <div class="card-cyber" style="padding:28px;text-align:center;margin-bottom:16px;">
+                <h4 style="margin-bottom:16px;">Risk Score</h4>
+                <div class="risk-meter risk-low" data-score="0" style="margin:0 auto;">
+                    <svg width="120" height="120" viewBox="0 0 140 140">
+                        <circle class="risk-meter-bg" cx="70" cy="70" r="60"/>
+                        <circle class="risk-meter-fill" cx="70" cy="70" r="60"/>
+                    </svg>
+                    <div class="risk-meter-label">
+                        <div class="risk-meter-value">0%</div>
+                        <div class="risk-meter-text">Risk</div>
+                    </div>
+                </div>
+                <p class="text-muted text-sm mt-8">Total PII: <strong class="text-cyan scan-total">0</strong></p>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header"><h3>Highlighted Text</h3></div>
+                <div class="card-body">
+                    <div class="text-preview" style="max-height:250px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>PII Summary</h3></div>
+                <div class="card-body" style="padding:0;">
+                    <div class="detection-list pii-summary-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PII Reference (shown when no results) -->
+        <div class="card-cyber" style="padding:28px;" id="scan-reference">
+            <h3 style="margin-bottom:16px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Detectable PII Types
+            </h3>
+            <div class="pii-legend" style="flex-direction:column;gap:12px;">
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#00E5FF;"></span> Email Addresses</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#7B61FF;"></span> Phone Numbers (Indian, Intl)</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EF4444;"></span> PAN Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#F59E0B;"></span> Aadhaar Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#10B981;"></span> IP Addresses (v4)</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EC4899;"></span> Credit Card Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#3B82F6;"></span> Date of Birth</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#8B5CF6;"></span> Passport Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#00C2A8;"></span> UPI IDs</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

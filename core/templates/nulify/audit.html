@@ -1,0 +1,80 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}Audit Logs{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="card animate-fade">
+    <div class="card-header">
+        <h3>Audit Trail</h3>
+        <div class="filter-bar">
+            <select class="form-control" id="action-filter" style="max-width:180px;">
+                <option value="">All Actions</option>
+                {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="card-body" style="padding:0;">
+        <div class="table-wrapper">
+            <table id="audit-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>File</th>
+                        <th>Details</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr data-action="{{ log.action }}">
+                        <td class="text-sm text-muted">{{ log.timestamp|date:"M d, Y H:i" }}</td>
+                        <td style="font-weight:600;">{% if log.user %}{{ log.user.username }}{% else %}System{% endif %}</td>
+                        <td>
+                            {% if log.action == 'upload' %}
+                            <span class="badge badge-cyan">Upload</span>
+                            {% elif log.action == 'download' or log.action == 'download_original' or log.action == 'download_report' %}
+                            <span class="badge badge-teal">Download</span>
+                            {% elif log.action == 'process' %}
+                            <span class="badge badge-info">Process</span>
+                            {% elif log.action == 'sanitize' %}
+                            <span class="badge badge-purple">Sanitize</span>
+                            {% elif log.action == 'login' %}
+                            <span class="badge badge-success">Login</span>
+                            {% elif log.action == 'logout' %}
+                            <span class="badge badge-secondary">Logout</span>
+                            {% elif log.action == 'register' %}
+                            <span class="badge badge-purple">Register</span>
+                            {% elif log.action == 'scan' %}
+                            <span class="badge badge-warning">Scan</span>
+                            {% else %}
+                            <span class="badge badge-info">{{ log.get_action_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-sm">{% if log.file %}{{ log.file.original_filename|truncatechars:20 }}{% else %}—{% endif %}</td>
+                        <td class="text-sm text-muted">{{ log.details|default:"—"|truncatechars:40 }}</td>
+                        <td class="text-sm" style="font-family:'Courier New',monospace;color:var(--text-muted);">{{ log.ip_address|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6"><div class="empty-state"><h3>No audit logs</h3><p>Actions will be recorded here</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('action-filter')?.addEventListener('change', function() {
+    const v = this.value;
+    document.querySelectorAll('#audit-table tbody tr').forEach(r => {
+        r.style.display = !v || r.dataset.action === v ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

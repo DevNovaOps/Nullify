@@ -1,0 +1,139 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}Upload Files{% endblock %}
+{% block page_title %}Upload Files{% endblock %}
+
+{% block content %}
+<div class="two-col animate-fade">
+    <!-- Upload Form -->
+    <div class="card">
+        <div class="card-header">
+            <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload & Scan
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" action="{% url 'upload' %}">
+                {% csrf_token %}
+
+                <!-- Drop Zone -->
+                <div class="upload-zone" id="upload-zone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17,8 12,3 7,8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <h4>Drag & drop files here</h4>
+                    <p>or click to browse — PDF, DOCX, TXT, CSV, SQL, JSON</p>
+                    <input type="file" name="files" id="file-upload-input" multiple accept=".pdf,.docx,.txt,.csv,.sql,.json" hidden>
+                </div>
+
+                <div class="file-list-preview" id="file-preview"></div>
+
+                <!-- Sanitization Method -->
+                <div class="form-group" style="margin-top:20px;">
+                    <label for="sanitization-method">Sanitization Method</label>
+                    <select name="sanitization_method" id="sanitization-method" class="form-control">
+                        <option value="redaction">Redaction — Replace with [REDACTED]</option>
+                        <option value="masking">Masking — Partial character reveal</option>
+                        <option value="tokenization">Tokenization — Replace with unique tokens</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full btn-lg">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Scan & Sanitize
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card-cyber" style="padding:28px;">
+            <h3 style="margin-bottom:16px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Supported File Types
+            </h3>
+            <div class="pii-legend" style="flex-direction:column;gap:10px;">
+                <div class="pii-legend-item"><span class="badge badge-cyan">PDF</span> Portable Document Format</div>
+                <div class="pii-legend-item"><span class="badge badge-purple">DOCX</span> Microsoft Word</div>
+                <div class="pii-legend-item"><span class="badge badge-teal">TXT</span> Plain Text</div>
+                <div class="pii-legend-item"><span class="badge badge-success">CSV</span> Comma Separated Values</div>
+                <div class="pii-legend-item"><span class="badge badge-warning">SQL</span> SQL Dump Files</div>
+                <div class="pii-legend-item"><span class="badge badge-info">JSON</span> JSON Data</div>
+            </div>
+        </div>
+
+        <div class="card-cyber" style="padding:28px;">
+            <h3 style="margin-bottom:16px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                PII Types Detected
+            </h3>
+            <div class="pii-legend" style="flex-direction:column;gap:10px;">
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#00E5FF;"></span> Email Addresses</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#7B61FF;"></span> Phone Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EF4444;"></span> PAN Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#F59E0B;"></span> Aadhaar Numbers</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#10B981;"></span> IP Addresses</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EC4899;"></span> Credit Cards</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#3B82F6;"></span> DOB / Passport / UPI</div>
+            </div>
+        </div>
+
+        <div class="card-cyber" style="padding:28px;">
+            <h3 style="margin-bottom:16px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+                Sanitization Methods
+            </h3>
+            <div class="pii-legend" style="flex-direction:column;gap:12px;">
+                <div class="pii-legend-item">
+                    <span class="badge badge-danger">Redaction</span>
+                    <span class="text-muted text-sm">Replace PII with [REDACTED]</span>
+                </div>
+                <div class="pii-legend-item">
+                    <span class="badge badge-warning">Masking</span>
+                    <span class="text-muted text-sm">Show partial characters (e.g., j***@email.com)</span>
+                </div>
+                <div class="pii-legend-item">
+                    <span class="badge badge-purple">Tokenization</span>
+                    <span class="text-muted text-sm">Replace with unique tokens (TOK_EMAIL_A1B2C3D4)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if results %}
+<div class="card mt-24 animate-fade">
+    <div class="card-header"><h3>Batch Processing Results</h3></div>
+    <div class="card-body">
+        <div class="batch-results">
+            {% for r in results %}
+            <div class="batch-item {% if r.success %}success{% else %}error{% endif %}">
+                <svg class="batch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    {% if r.success %}<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
+                    {% else %}<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>{% endif %}
+                </svg>
+                <div class="batch-info">
+                    <div class="batch-name">{{ r.name }}</div>
+                    <div class="batch-detail">
+                        {% if r.success %}
+                        {{ r.pii_count }} PII found · Risk: {{ r.risk_score }}%
+                        {% else %}
+                        {{ r.error }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% if r.success %}
+                <a href="{% url 'file_detail' r.id %}" class="btn btn-ghost btn-sm">View →</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
