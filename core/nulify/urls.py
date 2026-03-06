@@ -47,6 +47,9 @@ urlpatterns = [
     # Instant Scan
     path('scan/', views.instant_scan, name='instant_scan'),
 
+    # Ollama / AI Status
+    path('api/ollama-status/', views.ollama_status, name='ollama_status'),
+
     # Settings
     path('settings/', views.settings_view, name='settings'),
     path('settings/profile/', views.settings_update_profile, name='settings_update_profile'),

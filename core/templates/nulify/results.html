@@ -25,6 +25,38 @@
             </div>
         </div>
 
+        <!-- Detection Methods Used -->
+        {% if method_summary %}
+        <div class="card">
+            <div class="card-header"><h3>Detection Methods Used</h3></div>
+            <div class="card-body">
+                <div class="d-flex gap-12 flex-wrap">
+                    {% if method_summary.regex %}
+                    <div class="method-badge method-regex">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        <span>Regex</span>
+                        <span class="method-count">{{ method_summary.regex }}</span>
+                    </div>
+                    {% endif %}
+                    {% if method_summary.nlp %}
+                    <div class="method-badge method-nlp">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        <span>NLP (NER)</span>
+                        <span class="method-count">{{ method_summary.nlp }}</span>
+                    </div>
+                    {% endif %}
+                    {% if method_summary.ml %}
+                    <div class="method-badge method-ml">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <span>ML Model</span>
+                        <span class="method-count">{{ method_summary.ml }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if user.role == 'admin' %}
         <!-- PII Highlighted Preview -->
         <div class="card">
@@ -78,15 +110,29 @@
         </div>
         {% endif %}
 
-        <!-- PII Detail List -->
+        <!-- PII Detail List with Method & Confidence -->
         <div class="card">
             <div class="card-header"><h3>PII Details ({{ detections|length }})</h3></div>
             <div class="card-body" style="padding:0;">
                 <div class="detection-list">
-                    {% for pii_type, count in pii_summary.items %}
+                    {% for d in detections %}
                     <div class="detection-item">
-                        <span class="badge badge-purple">{{ pii_type }}</span>
-                        <span class="detection-value">{{ count }} found</span>
+                        <div class="d-flex align-center gap-8" style="flex:1;min-width:0;">
+                            <span class="badge badge-purple">{{ d.pii_type }}</span>
+                            <span class="detection-value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ d.original_value }}">{{ d.original_value|truncatechars:20 }}</span>
+                        </div>
+                        <div class="d-flex align-center gap-6">
+                            {% if d.detection_method == 'regex' %}
+                            <span class="badge badge-sm badge-cyan" title="Detected by Regex">RGX</span>
+                            {% elif d.detection_method == 'nlp' %}
+                            <span class="badge badge-sm badge-teal" title="Detected by NLP (NER)">NLP</span>
+                            {% elif d.detection_method == 'ml' %}
+                            <span class="badge badge-sm badge-warning" title="Detected by ML Model">ML</span>
+                            {% endif %}
+                            <span class="confidence-bar" title="Confidence: {{ d.confidence|floatformat:0 }}%">
+                                <span class="confidence-fill {% if d.confidence >= 0.8 %}high{% elif d.confidence >= 0.5 %}medium{% else %}low{% endif %}" style="width:{{ d.confidence|floatformat:0 }}%;"></span>
+                            </span>
+                        </div>
                     </div>
                     {% empty %}
                     <p class="text-center text-muted" style="padding:20px;">No PII detected</p>

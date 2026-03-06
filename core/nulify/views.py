@@ -23,7 +23,7 @@ from .forms import (
     ForgotPasswordForm, SetNewPasswordForm,
 )
 from .decorators import admin_required
-from .pii_engine import detect_pii, calculate_risk_score, get_pii_summary
+from .pii_engine import detect_pii, detect_pii_regex_only, calculate_risk_score, get_pii_summary, get_method_summary, get_detection_methods_available
 from .extractors import extract_text
 from .sanitizer import sanitize_text
 from .file_generator import generate_sanitized_file, generate_report_pdf
@@ -492,6 +492,9 @@ def upload_file(request):
                         start_position=d['start'],
                         end_position=d['end'],
                         line_number=d.get('line', 0),
+                        detection_method=d.get('method', 'regex'),
+                        confidence=d.get('confidence', 1.0),
+                        sensitivity=d.get('sensitivity', 'medium'),
                     ))
                 PIIDetection.objects.bulk_create(pii_objects)
 
@@ -603,6 +606,12 @@ def file_detail(request, file_id):
     # Get all sanitized versions for this file
     sanitized_versions = uploaded.sanitized_versions.all()
 
+    # Method summary for badges
+    method_summary = {}
+    for d in detections:
+        m = d.detection_method
+        method_summary[m] = method_summary.get(m, 0) + 1
+
     context = {
         'file': uploaded,
         'detections': detections,
@@ -611,6 +620,7 @@ def file_detail(request, file_id):
         'highlighted_text': highlighted,
         'pii_summary': pii_summary,
         'pii_summary_chart': pii_summary_chart,
+        'method_summary': method_summary,
     }
     return render(request, 'nulify/results.html', context)
 
@@ -846,7 +856,8 @@ def audit_logs(request):
 
 @login_required
 def instant_scan(request):
-    context = {'form': InstantScanForm()}
+    methods_status = get_detection_methods_available()
+    context = {'form': InstantScanForm(), 'methods_status': methods_status}
 
     if request.method == 'POST':
         text = request.POST.get('text', '').strip()
@@ -854,14 +865,16 @@ def instant_scan(request):
             messages.error(request, 'Please enter some text to scan.')
             return render(request, 'nulify/instant_scan.html', context)
 
+        # Use all available methods for instant scan
         detections = detect_pii(text)
         risk_score = calculate_risk_score(detections)
         highlighted = _highlight_pii(text, detections)
         pii_summary = get_pii_summary(detections)
+        method_summary = get_method_summary(detections)
 
         AuditLog.objects.create(
             user=request.user, action='scan',
-            details=f'Instant scan: {len(detections)} PII detected',
+            details=f'Instant scan: {len(detections)} PII detected (methods: {method_summary})',
             ip_address=_ip(request),
         )
 
@@ -872,6 +885,7 @@ def instant_scan(request):
                 'highlighted': highlighted,
                 'risk_score': risk_score,
                 'pii_summary': pii_summary,
+                'method_summary': method_summary,
                 'total': len(detections),
             })
 
@@ -881,6 +895,7 @@ def instant_scan(request):
             'highlighted': highlighted,
             'risk_score': risk_score,
             'pii_summary': pii_summary,
+            'method_summary': method_summary,
             'scanned': True,
         })
 
@@ -888,6 +903,14 @@ def instant_scan(request):
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  OLLAMA STATUS API
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def ollama_status(request):
+    """API endpoint returning Ollama connection status and available models."""
+    status = get_detection_methods_available()
+    return JsonResponse(status)
 #  SETTINGS
 # ══════════════════════════════════════════════════════════════════════
 

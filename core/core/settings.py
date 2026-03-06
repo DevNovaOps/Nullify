@@ -60,7 +60,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'nullify',
         'USER': 'root',
-        'PASSWORD': 'Karnik@1',
+        'PASSWORD': 'dev@2006',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -116,3 +116,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ── File Upload Settings ───────────────────────────────────────────
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10 MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+# ── Ollama Configuration (NLP + ML Engines) ────────────────────────
+OLLAMA_BASE_URL = 'http://localhost:11434'
+OLLAMA_NLP_MODEL = 'llama3.2:3b'   # Model for NLP-based NER detection
+OLLAMA_ML_MODEL = 'llama3.2:3b'    # Model for ML confidence scoring
+OLLAMA_TIMEOUT = 60             # Request timeout in seconds
+
