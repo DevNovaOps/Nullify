@@ -345,12 +345,12 @@
     transition: var(--transition);
 }
 
-.settings-switch input:checked + .settings-switch-slider {
+.settings-switch input:checked+.settings-switch-slider {
     background: var(--hl-blue);
     border-color: var(--hl-blue);
 }
 
-.settings-switch input:checked + .settings-switch-slider::before {
+.settings-switch input:checked+.settings-switch-slider::before {
     transform: translateX(20px);
     background-color: white;
 }

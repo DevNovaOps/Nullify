@@ -113,6 +113,37 @@ def contact(request):
 def privacy(request):
     return render(request, 'nulify/privacy.html')
 
+def terms(request):
+    return render(request, 'nulify/terms.html')
+
+def cookie_policy(request):
+    return render(request, 'nulify/cookie_policy.html')
+
+@login_required
+def download_my_data(request):
+    """Export the logged-in user's profile data as a JSON file."""
+    import json as _json
+    user = request.user
+    data = {
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'role': user.role,
+        'date_joined': user.date_joined.isoformat(),
+        'last_login': user.last_login.isoformat() if user.last_login else None,
+        'audit_log_count': user.audit_logs.count(),
+    }
+    payload = _json.dumps(data, indent=2)
+    response = HttpResponse(payload, content_type='application/json')
+    response['Content-Disposition'] = f'attachment; filename="nullify_data_{user.username}.json"'
+    AuditLog.objects.create(
+        user=user, action='settings',
+        details='User downloaded their personal data export.',
+        ip_address=_ip(request),
+    )
+    return response
+
 
 # ══════════════════════════════════════════════════════════════════════
 #  AUTH VIEWS
@@ -854,3 +885,118 @@ def instant_scan(request):
         })
 
     return render(request, 'nulify/instant_scan.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  SETTINGS
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+@admin_required
+def settings_view(request):
+    """Render the settings page with all tabs."""
+    return render(request, 'nulify/settings.html')
+
+
+@login_required
+def settings_update_profile(request):
+    """Handle profile update form submission."""
+    if request.method != 'POST':
+        return redirect('settings')
+
+    user = request.user
+    first_name = request.POST.get('first_name', '').strip()
+    last_name  = request.POST.get('last_name', '').strip()
+    email      = request.POST.get('email', '').strip()
+    username   = request.POST.get('username', '').strip()
+
+    if not username:
+        messages.error(request, 'Username cannot be empty.')
+        return redirect('settings')
+
+    # Check username uniqueness (exclude self)
+    if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+        messages.error(request, 'That username is already taken.')
+        return redirect('settings')
+
+    # Check email uniqueness (exclude self)
+    if email and User.objects.filter(email=email).exclude(pk=user.pk).exists():
+        messages.error(request, 'That email address is already in use.')
+        return redirect('settings')
+
+    user.first_name = first_name
+    user.last_name  = last_name
+    user.username   = username
+    if email:
+        user.email  = email
+    user.save()
+
+    AuditLog.objects.create(
+        user=user, action='settings',
+        details='User updated their profile information.',
+        ip_address=_ip(request),
+    )
+    messages.success(request, 'Profile updated successfully!')
+    from django.urls import reverse
+    from django.http import HttpResponseRedirect
+    return HttpResponseRedirect(reverse('settings') + '#profile')
+
+
+@login_required
+def settings_change_password(request):
+    """Handle password change form submission."""
+    if request.method != 'POST':
+        return redirect('settings')
+
+    user            = request.user
+    current_pw      = request.POST.get('current_password', '')
+    new_pw          = request.POST.get('new_password', '')
+    confirm_pw      = request.POST.get('confirm_password', '')
+
+    if not user.check_password(current_pw):
+        messages.error(request, 'Current password is incorrect.')
+        return redirect('settings')
+
+    if len(new_pw) < 8:
+        messages.error(request, 'New password must be at least 8 characters.')
+        return redirect('settings')
+
+    if new_pw != confirm_pw:
+        messages.error(request, 'New passwords do not match.')
+        return redirect('settings')
+
+    user.set_password(new_pw)
+    user.save()
+
+    # Re-authenticate so the session stays valid
+    from django.contrib.auth import update_session_auth_hash
+    update_session_auth_hash(request, user)
+
+    AuditLog.objects.create(
+        user=user, action='settings',
+        details='User changed their password.',
+        ip_address=_ip(request),
+    )
+    messages.success(request, 'Password changed successfully!')
+    from django.urls import reverse
+    from django.http import HttpResponseRedirect
+    return HttpResponseRedirect(reverse('settings') + '#security')
+
+
+@login_required
+def settings_delete_account(request):
+    """Handle account deletion form submission."""
+    if request.method != 'POST':
+        return redirect('settings')
+
+    user = request.user
+    AuditLog.objects.create(
+        user=user, action='settings',
+        details=f'Account deleted: {user.username} ({user.email})',
+        ip_address=_ip(request),
+    )
+    logout(request)
+    user.delete()
+    messages.info(request, 'Your account has been permanently deleted.')
+    return redirect('home')
+

@@ -1,0 +1,197 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service — Nullify</title>
+    <meta name="description"
+        content="Nullify's Terms of Service — the rules and guidelines governing your use of the platform.">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pages.css' %}">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <a href="{% url 'home' %}" class="navbar-brand">
+            <svg width="36" height="36" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15"
+                    stroke-linecap="round" fill="none" />
+                <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15"
+                    stroke-linecap="round" fill="none" />
+                <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15"
+                    fill="none" />
+                <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15"
+                    fill="none" />
+            </svg>
+            <h1>Null<span>ify</span></h1>
+        </a>
+        <div class="navbar-center">
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'about' %}">About</a>
+            <a href="{% url 'contact' %}">Contact</a>
+            <a href="{% url 'privacy' %}">Privacy</a>
+        </div>
+        <div class="navbar-right">
+            <div class="theme-toggle-pill">
+                <button data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg></button>
+                <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                    </svg></button>
+                <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                        <path d="M8 21h8m-4-4v4" />
+                    </svg></button>
+            </div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline btn-sm">Dashboard</a>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">Log in</a>
+            <a href="{% url 'register' %}" class="btn btn-primary btn-sm">Get Started</a>
+            {% endif %}
+        </div>
+        <button class="mobile-menu-btn" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+        </button>
+    </nav>
+
+    <div class="public-page">
+        <div class="page-hero">
+            <div class="cyber-grid-bg"></div>
+            <div class="page-hero-label">Legal</div>
+            <h1 class="page-hero-title">Terms of <span class="text-gradient">Service</span></h1>
+            <p class="page-hero-desc">The rules and guidelines governing your use of Nullify. Last updated: March 2026.
+            </p>
+        </div>
+
+        <div class="privacy-content">
+            <div class="privacy-section">
+                <h2>1. Acceptance of Terms</h2>
+                <p>By accessing or using the Nullify platform ("Service"), you agree to be bound by these Terms of
+                    Service ("Terms"). If you do not agree to these Terms, do not use the Service. These Terms
+                    constitute a legally binding agreement between you and Nullify.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>2. Use of the Service</h2>
+                <p>You may use Nullify only for lawful purposes and in accordance with these Terms. You agree
+                    <strong>not</strong> to:</p>
+                <ul>
+                    <li>Upload files containing content that is illegal, harmful, or violates any third-party rights
+                    </li>
+                    <li>Attempt to reverse-engineer, decompile, or tamper with the platform</li>
+                    <li>Use the Service to process data you do not have authorisation to handle</li>
+                    <li>Circumvent any access controls or security mechanisms</li>
+                    <li>Upload malware, viruses, or any malicious code</li>
+                </ul>
+            </div>
+
+            <div class="privacy-section">
+                <h2>3. User Accounts</h2>
+                <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to
+                    notify us immediately of any unauthorised access to your account. Nullify is not liable for any loss
+                    resulting from unauthorised use of your account.</p>
+                <ul>
+                    <li>Accounts are non-transferable</li>
+                    <li>You must provide accurate and current information during registration</li>
+                    <li>Admin accounts carry additional responsibilities and are subject to stricter review</li>
+                </ul>
+            </div>
+
+            <div class="privacy-section">
+                <h2>4. Uploaded Files &amp; Data</h2>
+                <p>You retain all ownership rights to files you upload. By uploading files, you grant Nullify a limited,
+                    non-exclusive licence to process those files solely for the purpose of providing the PII detection
+                    and sanitisation service. We do not sell, share, or exploit your data in any way.</p>
+                <p>You are solely responsible for ensuring you have the right to upload and process any data submitted
+                    to the platform, especially data containing personal information of third parties.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>5. Intellectual Property</h2>
+                <p>All software, designs, algorithms, and content comprising the Nullify platform are the intellectual
+                    property of Nullify and its licensors. Nothing in these Terms grants you any right, title, or
+                    interest in Nullify's intellectual property.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>6. Disclaimers &amp; Limitation of Liability</h2>
+                <p>The Service is provided "as is" without warranties of any kind, express or implied. Nullify does not
+                    warrant that the platform will be error-free, uninterrupted, or completely accurate in detecting all
+                    PII. To the maximum extent permitted by law, Nullify shall not be liable for any indirect,
+                    incidental, or consequential damages arising from your use of the Service.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>7. Termination</h2>
+                <p>We reserve the right to suspend or terminate your account at any time for violations of these Terms
+                    or for any other reason at our sole discretion. Upon termination, your right to use the Service
+                    ceases immediately. You may delete your own account at any time via the Settings page.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>8. Changes to These Terms</h2>
+                <p>We may update these Terms from time to time. Continued use of the Service after any changes
+                    constitutes your acceptance of the new Terms. We will always indicate the date of the last update at
+                    the top of this page.</p>
+            </div>
+
+            <div class="privacy-section">
+                <h2>9. Contact</h2>
+                <p>For questions about these Terms, please contact us at <a
+                        href="mailto:nullifyorg@gmail.com">nullifyorg@gmail.com</a>.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <div class="footer-brand">
+                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+                        <path d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round"
+                            fill="none" />
+                        <path d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round"
+                            fill="none" />
+                    </svg>
+                    <h2>Null<span>ify</span></h2>
+                </div>
+                <p class="footer-desc">PII Detection &amp; Data Sanitization Platform.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Product</h4><a href="{% url 'home' %}">Home</a><a href="{% url 'about' %}">About</a><a
+                    href="{% url 'register' %}">Get Started</a>
+            </div>
+            <div class="footer-col">
+                <h4>Features</h4><a href="#">PII Detection</a><a href="#">Sanitization</a><a href="#">Analytics</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4><a href="{% url 'privacy' %}">Privacy Policy</a><a href="{% url 'terms' %}">Terms of
+                    Service</a><a href="{% url 'cookie_policy' %}">Cookie Policy</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Nullify. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/home.js' %}"></script>
+</body>
+
+</html>

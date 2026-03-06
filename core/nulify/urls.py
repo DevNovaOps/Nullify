@@ -7,6 +7,9 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     path('privacy/', views.privacy, name='privacy'),
+    path('terms/', views.terms, name='terms'),
+    path('cookie-policy/', views.cookie_policy, name='cookie_policy'),
+    path('download-my-data/', views.download_my_data, name='download_my_data'),
 
     # Auth
     path('login/', views.login_view, name='login'),
@@ -43,4 +46,10 @@ urlpatterns = [
 
     # Instant Scan
     path('scan/', views.instant_scan, name='instant_scan'),
+
+    # Settings
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/profile/', views.settings_update_profile, name='settings_update_profile'),
+    path('settings/password/', views.settings_change_password, name='settings_change_password'),
+    path('settings/delete/', views.settings_delete_account, name='settings_delete_account'),
 ]
