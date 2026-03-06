@@ -4,7 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Nullify</title>
+    <title>Sign In — Nullify</title>
+    <meta name="description" content="Sign in to Nullify — PII Detection & Data Sanitization Platform">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
@@ -17,28 +21,40 @@
             <div class="scanline-overlay"></div>
         </div>
 
-        <div class="auth-theme-toggle">
-            <div class="theme-toggle-pill">
-                <button data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-                <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
-                <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg></button>
+        <!-- ── Top Navbar ── -->
+        <nav class="auth-navbar">
+            <a href="{% url 'home' %}" class="auth-navbar-brand">
+                <svg width="28" height="28" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                    <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                    <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                </svg>
+                <span class="brand-text">Null<em>ify</em></span>
+            </a>
+            <div class="auth-navbar-right">
+                <div class="theme-toggle-pill">
+                    <button data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                    <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+                    <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg></button>
+                </div>
+                <span class="auth-navbar-text">Don't have an account?</span>
+                <a href="{% url 'register' %}" class="auth-navbar-btn">Sign up</a>
             </div>
-        </div>
+        </nav>
 
         <div class="auth-container animate-fade">
             <div class="auth-card">
-                <div class="auth-logo">
-                    <svg width="48" height="48" viewBox="0 0 100 100" fill="none" class="logo-svg">
-                        <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
-                        <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
-                <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" fill="none"/>
-                <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/>
-                    </svg>
-                    <h1>Null<span>ify</span></h1>
+                <!-- Lock Icon -->
+                <div class="auth-icon-wrapper">
+                    <div class="auth-icon auth-icon-blue">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </div>
                 </div>
 
-                <h2 class="auth-title">Welcome Back</h2>
-                <p class="auth-subtitle">Sign in to your account</p>
+                <h2 class="auth-title auth-title-lg">Welcome back</h2>
+                <p class="auth-subtitle">Enter your credentials to access your dashboard.</p>
 
                 {% if messages %}
                 {% for msg in messages %}
@@ -46,29 +62,39 @@
                 {% endfor %}
                 {% endif %}
 
-                <form method="post" action="{% url 'login' %}">
+                <form method="post" action="{% url 'login' %}" id="login-form">
                     {% csrf_token %}
                     <div class="form-group">
-                        <label for="login-username">Username</label>
-                        <input type="text" name="username" id="login-username" class="form-control" placeholder="Enter username" autocomplete="username" required>
+                        <label for="login-email">Email Address</label>
+                        <input type="email" name="email" id="login-email" class="form-control" placeholder="name@organization.org" autocomplete="email" required>
                     </div>
                     <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" name="password" id="login-password" class="form-control" placeholder="Enter password" autocomplete="current-password" required>
+                        <div class="password-label-row">
+                            <label for="login-password">Password</label>
+                            <a href="{% url 'forgot_password' %}" class="forgot-link">Forgot?</a>
+                        </div>
+                        <input type="password" name="password" id="login-password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+                        <div class="password-requirements">
+                            <div class="req-item" data-req="length"><span class="req-dot"></span> At least 8 characters</div>
+                            <div class="req-item" data-req="uppercase"><span class="req-dot"></span> One uppercase letter</div>
+                            <div class="req-item" data-req="number"><span class="req-dot"></span> One number</div>
+                            <div class="req-item" data-req="special"><span class="req-dot"></span> One special symbol (!@#$...)</div>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-full btn-lg" style="margin-top:8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10,17 15,12 10,7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    <button type="submit" class="btn btn-primary w-full btn-lg auth-submit-btn" id="signin-btn">
                         Sign In
                     </button>
                 </form>
 
-                <div class="auth-footer">
-                    Don't have an account? <a href="{% url 'register' %}">Create one</a>
+                <div class="auth-secure-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Protected by Nullify SecureAuth™
                 </div>
             </div>
         </div>
     </div>
 
     <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

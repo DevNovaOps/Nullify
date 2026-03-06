@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verified — Nullify</title>
+    <meta name="description" content="OTP verified successfully">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-bg-effects">
+            <div class="cyber-grid-bg"></div>
+            <div class="auth-orb auth-orb-1"></div>
+            <div class="auth-orb auth-orb-2"></div>
+            <div class="scanline-overlay"></div>
+        </div>
+
+        <!-- ── Top Navbar ── -->
+        <nav class="auth-navbar">
+            <a href="{% url 'home' %}" class="auth-navbar-brand">
+                <svg width="28" height="28" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                    <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                    <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                </svg>
+                <span class="brand-text">Null<em>ify</em></span>
+            </a>
+            <div class="auth-navbar-right">
+                <div class="theme-toggle-pill">
+                    <button data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                    <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+                    <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg></button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="auth-container animate-fade">
+            <div class="auth-card auth-card-centered">
+                <!-- Success Icon -->
+                <div class="auth-icon-wrapper">
+                    <div class="auth-icon auth-icon-green">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20,6 9,17 4,12"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <h2 class="auth-title auth-title-lg">OTP Verified!</h2>
+                <p class="auth-subtitle">What would you like to do next?</p>
+
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+                {% endfor %}
+                {% endif %}
+
+                <div class="auth-action-cards">
+                    <a href="{% url 'set_new_password' %}" class="action-card" id="set-password-card">
+                        <div class="action-card-icon action-icon-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                            </svg>
+                        </div>
+                        <div class="action-card-text">
+                            <strong>Set New Password</strong>
+                            <span>Create a new password for your account</span>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'continue_without_changing' %}" class="action-card" id="continue-card">
+                        <div class="action-card-icon action-icon-teal">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10,17 15,12 10,7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                        </div>
+                        <div class="action-card-text">
+                            <strong>Continue Without Changing</strong>
+                            <span>Login directly to your dashboard</span>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="auth-secure-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Protected by Nullify SecureAuth™
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/base.js' %}"></script>
+</body>
+</html>

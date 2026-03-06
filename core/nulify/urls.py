@@ -7,11 +7,22 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     path('privacy/', views.privacy, name='privacy'),
+    path('terms/', views.terms, name='terms'),
+    path('cookie-policy/', views.cookie_policy, name='cookie_policy'),
+    path('download-my-data/', views.download_my_data, name='download_my_data'),
 
     # Auth
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+
+    # Forgot Password Flow
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
+    path('verify-otp/', views.verify_otp_view, name='verify_otp'),
+    path('resend-otp/', views.resend_otp_view, name='resend_otp'),
+    path('otp-verified/', views.otp_verified_view, name='otp_verified'),
+    path('set-new-password/', views.set_new_password_view, name='set_new_password'),
+    path('continue-without-changing/', views.continue_without_changing_view, name='continue_without_changing'),
 
     # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -38,4 +49,10 @@ urlpatterns = [
 
     # Ollama / AI Status
     path('api/ollama-status/', views.ollama_status, name='ollama_status'),
+
+    # Settings
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/profile/', views.settings_update_profile, name='settings_update_profile'),
+    path('settings/password/', views.settings_change_password, name='settings_change_password'),
+    path('settings/delete/', views.settings_delete_account, name='settings_delete_account'),
 ]

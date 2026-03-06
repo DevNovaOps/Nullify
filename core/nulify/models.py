@@ -119,6 +119,7 @@ class AuditLog(models.Model):
         ('logout', 'User Logout'),
         ('register', 'User Registration'),
         ('scan', 'Instant Scan'),
+        ('settings', 'Settings Update'),
     ]
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_logs')
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

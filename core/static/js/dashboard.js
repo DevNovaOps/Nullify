@@ -188,6 +188,32 @@ const AnimatedCounter = {
     }
 };
 
+// ── Profile Dropdown ─────────────────────────────────────────────────
+const ProfileDropdown = {
+    init() {
+        const trigger = document.getElementById('profile-trigger');
+        const dropdown = document.getElementById('profile-dropdown');
+        if (!trigger || !dropdown) return;
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#profile-dropdown-wrapper')) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') dropdown.classList.remove('open');
+        });
+    }
+};
+
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     Sidebar.init();
@@ -195,4 +221,5 @@ document.addEventListener('DOMContentLoaded', () => {
     RiskMeter.init();
     InstantScan.init();
     AnimatedCounter.init();
+    ProfileDropdown.init();
 });
