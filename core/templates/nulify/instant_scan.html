@@ -1,7 +1,7 @@
 {% extends 'nulify/base.html' %}
 {% load static %}
 
-{% block title %}Instant Scan{% endblock %}
+{% block title %}Instant PII Scan{% endblock %}
 {% block page_title %}Instant PII Scan{% endblock %}
 
 {% block content %}
@@ -15,11 +15,17 @@
             </h3>
         </div>
         <div class="card-body">
-            <form id="instant-scan-form">
+            <form method="post" id="instant-scan-form">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="instant-scan-text">Text to Scan</label>
-                    <textarea id="instant-scan-text" name="text" class="form-control" rows="12" placeholder="Paste your text here to instantly scan for PII...&#10;&#10;Example:&#10;John's email is john@example.com&#10;His PAN is ABCDE1234F&#10;Phone: +91-9876543210"></textarea>
+                    <label for="instant-scan-text">TEXT TO SCAN</label>
+                    <textarea name="text" id="instant-scan-text" class="form-control"
+                        rows="10" placeholder="Paste your text here to instantly scan for PII..."
+                    >{% if text %}{{ text }}{% else %}
+Example:
+John's email is john@example.com
+His PAN is ABCDE1234F
+Phone: +91-9876543210{% endif %}</textarea>
                 </div>
                 <button type="submit" class="btn btn-primary w-full btn-lg">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -29,47 +35,58 @@
         </div>
     </div>
 
-    <!-- Results / Info -->
+    <!-- Right Column: Detection Status & PII Types -->
     <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- Results (hidden by default) -->
-        <div id="scan-results" style="display:none;">
-            <div class="card-cyber" style="padding:28px;text-align:center;margin-bottom:16px;">
-                <h4 style="margin-bottom:16px;">Risk Score</h4>
-                <div class="risk-meter risk-low" data-score="0" style="margin:0 auto;">
-                    <svg width="120" height="120" viewBox="0 0 140 140">
-                        <circle class="risk-meter-bg" cx="70" cy="70" r="60"/>
-                        <circle class="risk-meter-fill" cx="70" cy="70" r="60"/>
-                    </svg>
-                    <div class="risk-meter-label">
-                        <div class="risk-meter-value">0%</div>
-                        <div class="risk-meter-text">Risk</div>
-                    </div>
+        <!-- Detection Engine Status -->
+        <div class="card-cyber" style="padding:28px;">
+            <h3 style="margin-bottom:16px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Detection Engines
+            </h3>
+            <div class="engine-status-list">
+                <div class="engine-item">
+                    <span class="engine-dot active"></span>
+                    <span class="engine-name">Regex Engine</span>
+                    <span class="badge badge-success badge-sm">Active</span>
                 </div>
-                <p class="text-muted text-sm mt-8">Total PII: <strong class="text-cyan scan-total">0</strong></p>
-            </div>
-
-            <div class="card" style="margin-bottom:16px;">
-                <div class="card-header"><h3>Highlighted Text</h3></div>
-                <div class="card-body">
-                    <div class="text-preview" style="max-height:250px;"></div>
+                <div class="engine-item">
+                    {% if methods_status.nlp %}
+                    <span class="engine-dot active"></span>
+                    <span class="engine-name">NLP (NER) via Ollama</span>
+                    <span class="badge badge-success badge-sm">Active</span>
+                    {% else %}
+                    <span class="engine-dot inactive"></span>
+                    <span class="engine-name">NLP (NER) via Ollama</span>
+                    <span class="badge badge-secondary badge-sm">Offline</span>
+                    {% endif %}
+                </div>
+                <div class="engine-item">
+                    {% if methods_status.ml %}
+                    <span class="engine-dot active"></span>
+                    <span class="engine-name">ML Confidence Scorer</span>
+                    <span class="badge badge-success badge-sm">Active</span>
+                    {% else %}
+                    <span class="engine-dot inactive"></span>
+                    <span class="engine-name">ML Confidence Scorer</span>
+                    <span class="badge badge-secondary badge-sm">Offline</span>
+                    {% endif %}
                 </div>
             </div>
-
-            <div class="card">
-                <div class="card-header"><h3>PII Summary</h3></div>
-                <div class="card-body" style="padding:0;">
-                    <div class="detection-list pii-summary-list"></div>
-                </div>
-            </div>
+            {% if not methods_status.nlp and not methods_status.ml %}
+            <p class="text-sm text-muted" style="margin-top:12px;">
+                Start Ollama with <code>ollama serve</code> and pull a model with
+                <code>ollama pull llama3.2</code> to enable NLP & ML detection.
+            </p>
+            {% endif %}
         </div>
 
-        <!-- PII Reference (shown when no results) -->
+        <!-- Detectable PII Types -->
         <div class="card-cyber" style="padding:28px;" id="scan-reference">
             <h3 style="margin-bottom:16px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Detectable PII Types
             </h3>
-            <div class="pii-legend" style="flex-direction:column;gap:12px;">
+            <div class="pii-legend" style="flex-direction:column;gap:10px;">
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#00E5FF;"></span> Email Addresses</div>
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#7B61FF;"></span> Phone Numbers (Indian, Intl)</div>
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EF4444;"></span> PAN Numbers</div>
@@ -78,7 +95,67 @@
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#EC4899;"></span> Credit Card Numbers</div>
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#3B82F6;"></span> Date of Birth</div>
                 <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#8B5CF6;"></span> Passport Numbers</div>
-                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#00C2A8;"></span> UPI IDs</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#06B6D4;"></span> UPI IDs</div>
+                {% if methods_status.nlp %}
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#14B8A6;"></span> Names (NLP)</div>
+                <div class="pii-legend-item"><span class="pii-legend-dot" style="background:#A855F7;"></span> Addresses (NLP)</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan Results (shown after scan) -->
+<div id="scan-results" class="mt-24 {% if not scanned %}d-none{% endif %}">
+    <div class="card animate-fade">
+        <div class="card-header">
+            <h3>Scan Results</h3>
+            <span class="badge badge-cyan scan-total">{% if scanned %}{{ detections|length }}{% else %}0{% endif %} PII found</span>
+        </div>
+        <div class="card-body">
+            <div class="results-grid" style="grid-template-columns: 1fr 300px;">
+                <!-- Highlighted Text -->
+                <div>
+                    {% if method_summary %}
+                    <div class="d-flex gap-8 flex-wrap" style="margin-bottom:12px;">
+                        {% if method_summary.regex %}
+                        <span class="method-badge method-regex"><span>Regex: {{ method_summary.regex }}</span></span>
+                        {% endif %}
+                        {% if method_summary.nlp %}
+                        <span class="method-badge method-nlp"><span>NLP: {{ method_summary.nlp }}</span></span>
+                        {% endif %}
+                        {% if method_summary.ml %}
+                        <span class="method-badge method-ml"><span>ML: {{ method_summary.ml }}</span></span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="text-preview">{% if highlighted %}{{ highlighted|safe }}{% else %}No PII detected.{% endif %}</div>
+                </div>
+                <!-- Right: Risk + Summary -->
+                <div>
+                    <div class="risk-meter {% if risk_score >= 70 %}risk-high{% elif risk_score >= 30 %}risk-medium{% else %}risk-low{% endif %}" data-score="{{ risk_score|default:0 }}" style="margin:0 auto 16px;">
+                        <svg width="120" height="120" viewBox="0 0 140 140">
+                            <circle class="risk-meter-bg" cx="70" cy="70" r="60"/>
+                            <circle class="risk-meter-fill" cx="70" cy="70" r="60"/>
+                        </svg>
+                        <div class="risk-meter-label">
+                            <div class="risk-meter-value">{{ risk_score|default:0 }}%</div>
+                            <div class="risk-meter-text">Risk</div>
+                        </div>
+                    </div>
+                    <div class="pii-summary-list">
+                        {% if pii_summary %}
+                        {% for type, count in pii_summary.items %}
+                        <div class="detection-item">
+                            <span class="badge badge-purple">{{ type }}</span>
+                            <span class="detection-value">{{ count }} found</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted text-center" style="padding:20px;">No PII detected</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

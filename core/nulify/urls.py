@@ -35,4 +35,7 @@ urlpatterns = [
 
     # Instant Scan
     path('scan/', views.instant_scan, name='instant_scan'),
+
+    # Ollama / AI Status
+    path('api/ollama-status/', views.ollama_status, name='ollama_status'),
 ]

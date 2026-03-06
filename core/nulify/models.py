@@ -56,18 +56,32 @@ class UploadedFile(models.Model):
 
 class PIIDetection(models.Model):
     """Individual PII match found in an uploaded file."""
+    METHOD_CHOICES = [
+        ('regex', 'Regex'),
+        ('nlp', 'NLP (NER)'),
+        ('ml', 'ML Model'),
+    ]
+    SENSITIVITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    ]
     file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='detections')
     pii_type = models.CharField(max_length=50)
     original_value = models.CharField(max_length=500)
     start_position = models.IntegerField()
     end_position = models.IntegerField()
     line_number = models.IntegerField(default=0)
+    detection_method = models.CharField(max_length=10, choices=METHOD_CHOICES, default='regex')
+    confidence = models.FloatField(default=1.0)  # 0.0 to 1.0
+    sensitivity = models.CharField(max_length=10, choices=SENSITIVITY_CHOICES, default='medium')
 
     class Meta:
         db_table = 'nulify_pii_detection'
 
     def __str__(self):
-        return f"{self.pii_type}: {self.original_value[:30]}..."
+        return f"[{self.get_detection_method_display()}] {self.pii_type}: {self.original_value[:30]}..."
 
 
 class SanitizedFile(models.Model):
