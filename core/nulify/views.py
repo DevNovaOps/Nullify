@@ -5,6 +5,7 @@ Session-based authentication. Role-based access control.
 
 import os
 import json
+import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -13,9 +14,14 @@ from django.contrib import messages
 from django.db.models import Count, Q, Avg
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
 from datetime import timedelta
 from .models import User, UploadedFile, PIIDetection, SanitizedFile, AuditLog
-from .forms import LoginForm, RegisterForm, FileUploadForm, InstantScanForm
+from .forms import (
+    LoginForm, RegisterForm, FileUploadForm, InstantScanForm,
+    ForgotPasswordForm, SetNewPasswordForm,
+)
 from .decorators import admin_required
 from .pii_engine import detect_pii, calculate_risk_score, get_pii_summary
 from .extractors import extract_text
@@ -30,6 +36,10 @@ from .chart_generator import (
     generate_dashboard_mini_chart,
     generate_pii_summary_chart,
 )
+
+
+# Admin email constant
+ADMIN_EMAIL = 'nullifyorg@gmail.com'
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -52,6 +62,39 @@ def _highlight_pii(text, detections):
         tag = f'<mark class="pii-highlight pii-{pii_css}" data-pii-type="{d["type"]}">'
         highlighted = highlighted[:s] + tag + highlighted[s:e] + '</mark>' + highlighted[e:]
     return highlighted
+
+
+def _generate_otp():
+    """Generate a 6-digit OTP."""
+    return str(random.randint(100000, 999999))
+
+
+def _send_otp_email(email, otp):
+    """Send OTP to the user's email."""
+    subject = 'Nullify — Password Reset OTP'
+    message = f"""Hello,
+
+Your verification code for password reset is:
+
+    {otp}
+
+This code is valid for 10 minutes. Do not share it with anyone.
+
+If you did not request this, please ignore this email.
+
+— Nullify SecureAuth™
+"""
+    try:
+        send_mail(
+            subject,
+            message,
+            django_settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+        return True
+    except Exception:
+        return False
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -81,22 +124,30 @@ def login_view(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
-            user = authenticate(
-                request,
-                username=form.cleaned_data['username'],
-                password=form.cleaned_data['password'],
-            )
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            # Look up user by email
+            try:
+                user_obj = User.objects.get(email=email)
+                user = authenticate(
+                    request,
+                    username=user_obj.username,
+                    password=password,
+                )
+            except User.DoesNotExist:
+                user = None
+
             if user is not None:
                 login(request, user)
                 AuditLog.objects.create(
                     user=user, action='login',
-                    details=f'User logged in',
+                    details=f'User logged in via email',
                     ip_address=_ip(request),
                 )
                 messages.success(request, f'Welcome back, {user.first_name or user.username}!')
                 return redirect('dashboard')
             else:
-                messages.error(request, 'Invalid username or password.')
+                messages.error(request, 'Invalid email or password.')
     else:
         form = LoginForm()
     return render(request, 'nulify/login.html', {'form': form})
@@ -110,6 +161,11 @@ def register_view(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            # Assign admin role if email matches admin email
+            if user.email.lower() == ADMIN_EMAIL.lower():
+                user.role = 'admin'
+            else:
+                user.role = 'user'
             user.save()
             AuditLog.objects.create(
                 user=user, action='register',
@@ -133,6 +189,172 @@ def logout_view(request):
         )
     logout(request)
     messages.info(request, 'You have been logged out.')
+    return redirect('login')
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  FORGOT PASSWORD FLOW
+# ══════════════════════════════════════════════════════════════════════
+
+def forgot_password_view(request):
+    """Step 1: User enters email to receive OTP."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            try:
+                user = User.objects.get(email=email)
+                otp = _generate_otp()
+                # Store OTP in session
+                request.session['reset_otp'] = otp
+                request.session['reset_email'] = email
+                request.session['otp_created_at'] = timezone.now().isoformat()
+
+                if _send_otp_email(email, otp):
+                    messages.success(request, 'Verification code sent to your email.')
+                    return redirect('verify_otp')
+                else:
+                    messages.error(request, 'Failed to send email. Please try again.')
+            except User.DoesNotExist:
+                # Don't reveal whether user exists
+                messages.success(request, 'If an account with that email exists, a verification code has been sent.')
+                return redirect('verify_otp')
+    else:
+        form = ForgotPasswordForm()
+
+    return render(request, 'nulify/forgot_password.html', {'form': form})
+
+
+def verify_otp_view(request):
+    """Step 2: User enters the 6-digit OTP."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    # Must have come from forgot password
+    reset_email = request.session.get('reset_email')
+    if not reset_email:
+        messages.error(request, 'Please start the password reset process first.')
+        return redirect('forgot_password')
+
+    if request.method == 'POST':
+        # Collect OTP from 6 separate fields
+        otp_digits = []
+        for i in range(1, 7):
+            digit = request.POST.get(f'otp_{i}', '')
+            otp_digits.append(digit)
+        entered_otp = ''.join(otp_digits)
+
+        stored_otp = request.session.get('reset_otp')
+        otp_created = request.session.get('otp_created_at')
+
+        # Check OTP validity (10 minute expiry)
+        if otp_created:
+            from datetime import datetime
+            created_time = datetime.fromisoformat(otp_created)
+            if (timezone.now() - timezone.make_aware(created_time) if timezone.is_naive(created_time) else timezone.now() - created_time) > timedelta(minutes=10):
+                messages.error(request, 'OTP has expired. Please request a new one.')
+                return redirect('forgot_password')
+
+        if entered_otp == stored_otp:
+            request.session['otp_verified'] = True
+            return redirect('otp_verified')
+        else:
+            messages.error(request, 'Invalid OTP. Please try again.')
+
+    return render(request, 'nulify/verify_otp.html', {'email': reset_email})
+
+
+def resend_otp_view(request):
+    """Resend the OTP to the user's email."""
+    reset_email = request.session.get('reset_email')
+    if not reset_email:
+        return redirect('forgot_password')
+
+    otp = _generate_otp()
+    request.session['reset_otp'] = otp
+    request.session['otp_created_at'] = timezone.now().isoformat()
+
+    if _send_otp_email(reset_email, otp):
+        messages.success(request, 'A new verification code has been sent.')
+    else:
+        messages.error(request, 'Failed to send email. Please try again.')
+
+    return redirect('verify_otp')
+
+
+def otp_verified_view(request):
+    """Step 3: OTP verified — choose to set new password or continue."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if not request.session.get('otp_verified'):
+        messages.error(request, 'Please verify your OTP first.')
+        return redirect('forgot_password')
+
+    return render(request, 'nulify/otp_verified.html')
+
+
+def set_new_password_view(request):
+    """Step 4: Set a new password after OTP verification."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if not request.session.get('otp_verified'):
+        messages.error(request, 'Please verify your OTP first.')
+        return redirect('forgot_password')
+
+    reset_email = request.session.get('reset_email')
+
+    if request.method == 'POST':
+        form = SetNewPasswordForm(request.POST)
+        if form.is_valid():
+            try:
+                user = User.objects.get(email=reset_email)
+                user.set_password(form.cleaned_data['new_password'])
+                user.save()
+
+                # Clear session data
+                for key in ['reset_otp', 'reset_email', 'otp_created_at', 'otp_verified']:
+                    request.session.pop(key, None)
+
+                messages.success(request, 'Password updated successfully! Please sign in.')
+                return redirect('login')
+            except User.DoesNotExist:
+                messages.error(request, 'An error occurred. Please try again.')
+                return redirect('forgot_password')
+    else:
+        form = SetNewPasswordForm()
+
+    return render(request, 'nulify/set_new_password.html', {'form': form})
+
+
+def continue_without_changing_view(request):
+    """User chose not to change password — log them in directly."""
+    reset_email = request.session.get('reset_email')
+
+    # Clear session data
+    for key in ['reset_otp', 'reset_email', 'otp_created_at', 'otp_verified']:
+        request.session.pop(key, None)
+
+    # Directly log the user in using their verified email
+    if reset_email:
+        try:
+            user = User.objects.get(email=reset_email)
+            login(request, user)
+            AuditLog.objects.create(
+                user=user, action='login',
+                details='User logged in via OTP verification (continue without changing password)',
+                ip_address=_ip(request),
+            )
+            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
+            return redirect('dashboard')
+        except User.DoesNotExist:
+            pass
+
+    messages.info(request, 'No changes made. Please sign in.')
     return redirect('login')
 
 

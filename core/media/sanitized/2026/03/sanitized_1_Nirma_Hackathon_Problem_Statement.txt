@@ -1,0 +1,155 @@
+5. Problem Statement 
+Organizations frequently store and share sensitive data such as
+Any Other Sensitive Information
+Names
+PAN Numbers
+Phone Numbers
+Email Addresses
+Aadhar Numbers
+Addresses
+Manual sanitization is error -prone and inefficient. There is a 
+need for an automated system that:
+Detects PII in multiple data formats
+Removes or masks sensitive information
+Maintains auditability and security
+HACKaMINeD  Track
+6. What Is PII? 
+Personally Identifiable Information (PII) refers to any data that can be used to identify or trace an individual’s identity, 
+either directly or when combined with other information.
+Non PII
+Roll No 102345
+Aadhar Number XXXX-XXXX-9012
+Date of Birth **/**/****
+Card Number **********764321
+Note: Non -Personally Identifiable Information (Non -PII) refers to data that cannot be used to identify an individual directly or indir ectly. It does 
+not contain names, contact details, or any relational information that could link the data to a specific person.
+HACKaMINeD  Track
+PII Identification Criteria
+•Name: Rakesh Sharma
+•Aadhaar Number: 5487 8795  5678
+•DOB: **/**/****
+•Email: X***X@gmail.com
+•Card Number: XXXX-XXXX-9876 4321
+•Name on Card: Anjali Verma
+•CVV: 489
+•Expiry Date: 12/26
+Admin (Privileged User)
+Capabilities:
+•Upload structured and unstructured data
+•View original data
+•View sanitized output
+•Manage users
+•View audit logs
+•Download PII -free filesNon - Admin /Standard User
+Capabilities:
+•View sanitized data only
+•Download PII -free files
+•Search and filter records
+Restrictions :
+•Cannot access the original raw data
+•Cannot bypass sanitizationSupported upload formats :
+•Structured:  SQL, CSV , JSON
+•Unstructured:  PDF , DOCX, TXT
+•Media:  Images (PNG, JPG)
+•Any other structured/Unstructured file.
+7. User roles
+HACKaMINeD  Track
+PII Detection 
+Engine
+•Names
+•Phone 
+numbers
+•PAN numbers•Email addresses
+•Aadhaar numbers
+•IP addresses
+•AddressesDetection techniques
+•Regex -based detection
+•NLP -based entity 
+recognition (NER)
+•ML models (optional bonus) Multi -Format 
+Data Handling
+Unstructured:  PDF , DOCX, TXT
+Images:  ID proofs, screenshotsThe Platform Must Support:
+Data Type : Examples
+Structured:  SQL dumps, CSV , JSONProcessing 
+Pipeline
+•Admin uploads file
+•File is stored securely
+•PII detection engine scans data•PII is removed or masked
+•Sanitized version is stored
+•Only sanitized version is 
+accessible to non -admin users
+Access Control
+•Role -Based Access Control (RBAC)
+•Admin can view raw + sanitized data
+•Non -admin can only view sanitized data
+Audit Logging
+•File uploads
+•User access
+•Download actions
+•PII detection eventsSecure Storage
+•Encryption at rest
+•Encryption in transit (HTTPS)
+•Access controls
+PII Removal / Masking
+Masking:  
+[j*****e@email.com ] 
+(mailto:j*****e@email.co
+m) → j***@ email.comRedaction:  Replace 
+with "[REDACTED]“
+Tokenization:  Replace 
+with a unique tokenExample:
+Original: "My name is Rahul Sharma, and my 
+Aadhaar is 1234 -5678 -9012"
+Sanitized: "My name is [REDACTED], and my 
+Aadhaar is [REDACTED]"8. Key Features
+
+9. Sample Workflow
+Administrator
+Standard 
+User
+Upload Document
+ Download FileUploads a file containing
+personal data.Application scans and 
+removes PIIDownloads sanitized 
+fileList of sanitized 
+files
+PII-free FilesScanning
+HACKaMINeD  Track
+10. Sample Input -Output Visual
+Administrator
+Input Sample Data
+ Output Sample PII -free Data
+Download File
+ScanningStandard User
+HACKaMINeD  Track
+10. Sample Input -Output Visual
+HACKaMINeD Track
+SQL
+DOCX / PDF
+11. Selection Criteria (Evaluation)
+File Processing Requirement
+• Demonstrate PII masking 
+capability 
+• at least 3 sample files
+Mandatory File Formats
+•Mandatory formats must be included:
+•- SQL file
+•- PDF file
+•- DOCX file
+•The remaining files can be any format (e.g., TXT, 
+CSV, JSON, etc.).
+Input Output Demo
+•Original Input File
+•Processed Output File (with masked 
+PII) 
+✓PII fields masked 
+✓other data remains intact
+Implementation Format
+•script -based solution (CLI)
+•GUI -based tool (preferred)
+HACKaMINeD  Track
+SQL DOC PDF
+INOUT
+12. Download the Sample Dataset
+HACKaMINeD Track

@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up — Nullify</title>
-    <meta name="description" content="Create a Nullify account — PII Detection & Data Sanitization Platform">
+    <title>OTP Verified — Nullify</title>
+    <meta name="description" content="OTP verified successfully">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -36,15 +36,22 @@
                     <button data-theme="dark" title="Dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
                     <button data-theme="light" title="Light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8m-4-4v4"/></svg></button>
                 </div>
-                <span class="auth-navbar-text">Already have an account?</span>
-                <a href="{% url 'login' %}" class="auth-navbar-btn">Log in</a>
             </div>
         </nav>
 
         <div class="auth-container animate-fade">
-            <div class="auth-card">
-                <h2 class="auth-title auth-title-lg">Create your account</h2>
-                <p class="auth-subtitle">Start protecting your data with Nullify today.</p>
+            <div class="auth-card auth-card-centered">
+                <!-- Success Icon -->
+                <div class="auth-icon-wrapper">
+                    <div class="auth-icon auth-icon-green">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20,6 9,17 4,12"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <h2 class="auth-title auth-title-lg">OTP Verified!</h2>
+                <p class="auth-subtitle">What would you like to do next?</p>
 
                 {% if messages %}
                 {% for msg in messages %}
@@ -52,45 +59,33 @@
                 {% endfor %}
                 {% endif %}
 
-                {% if form.errors %}
-                <div class="alert alert-error">
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <form method="post" action="{% url 'register' %}" id="register-form">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="register-username">Username</label>
-                        <input type="text" name="username" id="register-username" class="form-control" placeholder="Choose a username" autocomplete="username" required value="{{ form.username.value|default_if_none:'' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-email">Work Email</label>
-                        <input type="email" name="email" id="register-email" class="form-control" placeholder="name@organization.org" autocomplete="email" required value="{{ form.email.value|default_if_none:'' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Create Password</label>
-                        <input type="password" name="password" id="register-password" class="form-control" placeholder="Must be at least 8 characters" autocomplete="new-password" required>
-                        <div class="password-requirements">
-                            <div class="req-item" data-req="length"><span class="req-dot"></span> At least 8 characters</div>
-                            <div class="req-item" data-req="uppercase"><span class="req-dot"></span> One uppercase letter</div>
-                            <div class="req-item" data-req="number"><span class="req-dot"></span> One number</div>
-                            <div class="req-item" data-req="special"><span class="req-dot"></span> One special symbol (!@#$...)</div>
+                <div class="auth-action-cards">
+                    <a href="{% url 'set_new_password' %}" class="action-card" id="set-password-card">
+                        <div class="action-card-icon action-icon-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                            </svg>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-confirm">Confirm Password</label>
-                        <input type="password" name="confirm_password" id="register-confirm" class="form-control" placeholder="Re-enter your password" autocomplete="new-password" required>
-                        <div class="password-match-feedback" id="password-match-feedback"></div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full btn-lg auth-submit-btn" id="signup-btn">
-                        Create Account
-                    </button>
-                </form>
+                        <div class="action-card-text">
+                            <strong>Set New Password</strong>
+                            <span>Create a new password for your account</span>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'continue_without_changing' %}" class="action-card" id="continue-card">
+                        <div class="action-card-icon action-icon-teal">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10,17 15,12 10,7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                        </div>
+                        <div class="action-card-text">
+                            <strong>Continue Without Changing</strong>
+                            <span>Login directly to your dashboard</span>
+                        </div>
+                    </a>
+                </div>
 
                 <div class="auth-secure-badge">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -101,6 +96,5 @@
     </div>
 
     <script src="{% static 'js/base.js' %}"></script>
-    <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>

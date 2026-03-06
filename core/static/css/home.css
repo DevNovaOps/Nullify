@@ -41,7 +41,7 @@
 }
 
 .navbar-brand h1 span {
-    color: var(--cyan);
+    color: var(--hl-teal);
 }
 
 .navbar-center {
@@ -63,7 +63,7 @@
 }
 
 .navbar-center a.active {
-    color: var(--cyan);
+    color: var(--hl-blue);
 }
 
 .navbar-center a::after {
@@ -73,7 +73,7 @@
     left: 0;
     width: 0;
     height: 2px;
-    background: var(--cyan);
+    background: var(--hl-blue);
     transition: width 0.3s ease;
 }
 
@@ -130,7 +130,7 @@
 
 .mobile-menu a:hover {
     background: var(--bg-surface-hover);
-    color: var(--cyan);
+    color: var(--hl-blue);
 }
 
 /* ── Hero Section ─────────────────────────────────────────────────── */
@@ -161,7 +161,7 @@
 .hero-orb-1 {
     width: 500px;
     height: 500px;
-    background: var(--cyan);
+    background: var(--hl-blue);
     top: -100px;
     right: -100px;
     animation-delay: 0s;
@@ -170,7 +170,7 @@
 .hero-orb-2 {
     width: 400px;
     height: 400px;
-    background: var(--purple);
+    background: var(--hl-teal);
     bottom: -100px;
     left: -100px;
     animation-delay: 2s;
@@ -179,7 +179,7 @@
 .hero-orb-3 {
     width: 300px;
     height: 300px;
-    background: var(--teal);
+    background: var(--hl-teal-light);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -199,11 +199,11 @@
     gap: 8px;
     padding: 8px 20px;
     border-radius: var(--radius-full);
-    background: rgba(0, 229, 255, 0.08);
-    border: 1px solid rgba(0, 229, 255, 0.2);
+    background: rgba(26, 86, 219, 0.08);
+    border: 1px solid rgba(26, 86, 219, 0.2);
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--cyan);
+    color: var(--hl-blue);
     margin-bottom: 28px;
     animation: borderGlow 3s ease-in-out infinite;
 }
@@ -262,10 +262,10 @@
 }
 
 .hero-stat-value {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 2rem;
     font-weight: 700;
-    color: var(--cyan);
+    color: var(--hl-blue);
 }
 
 .hero-stat-label {
@@ -286,10 +286,10 @@
 }
 
 .section-label {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--cyan);
+    color: var(--hl-blue);
     text-transform: uppercase;
     letter-spacing: 3px;
     margin-bottom: 12px;
@@ -333,8 +333,8 @@
 }
 
 .feature-icon.cyan {
-    background: rgba(0, 229, 255, 0.1);
-    color: var(--cyan);
+    background: rgba(26, 86, 219, 0.1);
+    color: var(--hl-blue);
 }
 
 .feature-icon.purple {
@@ -343,8 +343,8 @@
 }
 
 .feature-icon.teal {
-    background: rgba(0, 194, 168, 0.1);
-    color: var(--teal);
+    background: rgba(13, 148, 136, 0.1);
+    color: var(--hl-teal);
 }
 
 .feature-icon.danger {
@@ -402,10 +402,10 @@
 }
 
 .step-number {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 2.5rem;
     font-weight: 900;
-    color: var(--cyan);
+    color: var(--hl-blue);
     opacity: 0.2;
     margin-bottom: 16px;
 }
@@ -418,20 +418,20 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: rgba(0, 229, 255, 0.1);
-    border: 2px solid rgba(0, 229, 255, 0.2);
+    background: rgba(26, 86, 219, 0.1);
+    border: 2px solid rgba(26, 86, 219, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 16px;
-    color: var(--cyan);
+    color: var(--hl-blue);
     transition: all 0.3s;
 }
 
 .step-card:hover .step-icon {
-    background: var(--cyan);
-    color: var(--navy);
-    box-shadow: var(--glow-cyan);
+    background: var(--hl-gradient);
+    color: white;
+    box-shadow: var(--shadow-glow);
 }
 
 .step-icon svg {
@@ -456,7 +456,7 @@
     right: -20px;
     width: 40px;
     height: 2px;
-    background: linear-gradient(90deg, var(--cyan), transparent);
+    background: linear-gradient(90deg, var(--hl-blue), transparent);
     z-index: 2;
 }
 
@@ -525,9 +525,9 @@
 }
 
 .pii-type-card:hover {
-    border-color: var(--cyan);
+    border-color: var(--hl-blue);
     transform: translateY(-4px);
-    box-shadow: var(--glow-cyan);
+    box-shadow: var(--shadow-glow);
 }
 
 .pii-type-icon {
@@ -569,7 +569,7 @@
 }
 
 .footer-brand h2 span {
-    color: var(--cyan);
+    color: var(--hl-teal);
 }
 
 .footer-desc {
@@ -597,8 +597,8 @@
 }
 
 .footer-socials a:hover {
-    background: var(--cyan);
-    color: var(--navy);
+    background: var(--hl-gradient);
+    color: white;
 }
 
 .footer-socials a svg {
@@ -624,7 +624,7 @@
 }
 
 .footer-col a:hover {
-    color: var(--cyan);
+    color: var(--hl-blue);
 }
 
 .footer-bottom {

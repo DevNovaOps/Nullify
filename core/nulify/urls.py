@@ -13,6 +13,14 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
 
+    # Forgot Password Flow
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
+    path('verify-otp/', views.verify_otp_view, name='verify_otp'),
+    path('resend-otp/', views.resend_otp_view, name='resend_otp'),
+    path('otp-verified/', views.otp_verified_view, name='otp_verified'),
+    path('set-new-password/', views.set_new_password_view, name='set_new_password'),
+    path('continue-without-changing/', views.continue_without_changing_view, name='continue_without_changing'),
+
     # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
 
