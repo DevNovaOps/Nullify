@@ -892,7 +892,6 @@ def instant_scan(request):
 # ══════════════════════════════════════════════════════════════════════
 
 @login_required
-@admin_required
 def settings_view(request):
     """Render the settings page with all tabs."""
     return render(request, 'nulify/settings.html')
