@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 # ── Ollama Configuration ──────────────────────────────────────────────
 OLLAMA_BASE_URL = getattr(settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
-OLLAMA_ML_MODEL = getattr(settings, 'OLLAMA_ML_MODEL', 'llama3.2')
-OLLAMA_TIMEOUT = getattr(settings, 'OLLAMA_TIMEOUT', 60)
+OLLAMA_ML_MODEL = getattr(settings, 'OLLAMA_ML_MODEL', 'qwen2.5:0.5b')
+OLLAMA_TIMEOUT = getattr(settings, 'OLLAMA_TIMEOUT', 120)
 
 # ── ML Classification Prompt ─────────────────────────────────────────
 ML_SYSTEM_PROMPT = """You are a PII (Personally Identifiable Information) validation expert.

@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -14,9 +14,11 @@
     <!-- Navbar -->
     <nav class="navbar" id="navbar">
         <a href="{% url 'home' %}" class="navbar-brand">
-            <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-                <path d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
-                <path d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+            <svg width="36" height="36" viewBox="0 0 100 100" fill="none" class="logo-svg">
+                <path class="logo-hook-left" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" stroke-linecap="round" fill="none"/>
+                <path class="logo-hook-right" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" stroke-linecap="round" fill="none"/>
+                <path class="logo-packet" d="M 24 30 L 24 60 A 14 14 0 0 0 52 60 L 52 30" stroke-width="15" fill="none"/>
+                <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/>
             </svg>
             <h1>Null<span>ify</span></h1>
         </a>
@@ -121,17 +123,17 @@
                     <div class="card-cyber team-card">
                         <div class="team-avatar">D</div>
                         <h3 class="team-name">Dev</h3>
-                        <p class="team-role">Full-Stack Developer</p>
+                        <p class="team-role">Full stack +NER And ML</p>
                     </div>
                     <div class="card-cyber team-card">
-                        <div class="team-avatar" style="background:linear-gradient(135deg,#7B61FF,#EC4899);">N</div>
-                        <h3 class="team-name">Nullify Team</h3>
-                        <p class="team-role">Backend & Frontend</p>
+                        <div class="team-avatar" style="background:linear-gradient(135deg,#7B61FF,#EC4899);">K</div>
+                        <h3 class="team-name">Karnik</h3>
+                        <p class="team-role">Backend</p>
                     </div>
                     <div class="card-cyber team-card">
-                        <div class="team-avatar" style="background:linear-gradient(135deg,#00C2A8,#00E5FF);">H</div>
-                        <h3 class="team-name">Hackathon</h3>
-                        <p class="team-role">Student Team</p>
+                        <div class="team-avatar" style="background:linear-gradient(135deg,#00C2A8,#00E5FF);">P</div>
+                        <h3 class="team-name">Pruthil</h3>
+                        <p class="team-role">Frontend</p>
                     </div>
                 </div>
             </div>
@@ -148,13 +150,13 @@
                 <path class="logo-packet-delayed" d="M 48 70 L 48 40 A 14 14 0 0 1 76 40 L 76 70" stroke-width="15" fill="none"/></svg>
                     <h2>Null<span>ify</span></h2>
                 </div>
-                <p class="footer-desc">PII Detection & Data Sanitization Platform.</p>
+                <p class="footer-desc">PII Detection & Data Sanitization Platform. All detection is powered entirely by regex, NER and ML models.</p>
             </div>
             <div class="footer-col"><h4>Product</h4><a href="{% url 'home' %}">Home</a><a href="{% url 'about' %}">About</a><a href="{% url 'register' %}">Get Started</a></div>
             <div class="footer-col"><h4>Features</h4><a href="#">PII Detection</a><a href="#">Sanitization</a><a href="#">Analytics</a></div>
             <div class="footer-col"><h4>Legal</h4><a href="{% url 'privacy' %}">Privacy Policy</a><a href="{% url 'contact' %}">Contact</a></div>
         </div>
-        <div class="footer-bottom"><p>&copy; 2026 Nullify. All rights reserved.</p></div>
+        <div class="footer-bottom"><p>&copy; 2026 Nullify. All rights reserved. Powered by regex-based PII detection.</p></div>
     </footer>
 
     <script src="{% static 'js/base.js' %}"></script>

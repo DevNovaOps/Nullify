@@ -1,0 +1,81 @@
+{% extends 'nulify/base.html' %}
+{% load static %}
+
+{% block title %}My Requests{% endblock %}
+{% block page_title %}My Requests{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <div class="card">
+        <div class="card-header">
+            <h3>My Sanitization Requests</h3>
+            <a href="{% url 'submit_request' %}" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Request
+            </a>
+        </div>
+        <div class="card-body" style="padding:0;">
+            {% if requests %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Data</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.pk }}</td>
+                        <td>
+                            {% if req.original_filename %}
+                            <span title="{{ req.original_filename }}">📄 {{ req.original_filename|truncatechars:25 }}</span>
+                            {% else %}
+                            <span title="Pasted text">📝 Text ({{ req.data_text|length }} chars)</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge badge-purple">{{ req.get_method_display }}</span></td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                            <span class="badge badge-warning">Pending</span>
+                            {% elif req.status == 'processing' %}
+                            <span class="badge badge-cyan">Processing</span>
+                            {% elif req.status == 'completed' %}
+                            <span class="badge badge-success">Completed</span>
+                            {% elif req.status == 'rejected' %}
+                            <span class="badge badge-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted text-sm">{{ req.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            {% if req.status == 'completed' and req.result_file %}
+                            <a href="{% url 'download_sanitized' req.result_file.id %}" class="btn btn-primary btn-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Download
+                            </a>
+                            {% elif req.status == 'rejected' %}
+                            <span class="text-sm text-muted" title="{{ req.admin_response }}">{{ req.admin_response|truncatechars:30 }}</span>
+                            {% else %}
+                            <span class="text-sm text-muted">Awaiting admin</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;margin-bottom:12px;"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                <h3>No requests yet</h3>
+                <p>Submit your first sanitization request</p>
+                <a href="{% url 'submit_request' %}" class="btn btn-primary">Submit Request</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

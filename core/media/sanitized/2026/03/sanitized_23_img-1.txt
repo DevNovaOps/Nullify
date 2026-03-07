@@ -1,0 +1,42 @@
+[REDACTED]: [REDACTED]
+Mobile: [REDACTED]
+Email:
+[REDACTED]
+Address: [REDACTED],
+[REDACTED],
+[REDACTED]: [REDACTED] Aadhaar: [REDACTED]
+Passport: [REDACTED]
+[REDACTED] Account: [REDACTED] [REDACTED]: [REDACTED] UPI: [REDACTED] IP: [REDACTED] Device ID: [REDACTED]
+Fingerprint: [REDACTED]
+Face Template: [REDACTED]
+Riya Sharma DOB: [REDACTED]
+Mobile: [REDACTED]
+Email:
+[REDACTED]
+Address: [REDACTED]
+56, [REDACTED]
+[REDACTED]: [REDACTED] [REDACTED]: [REDACTED]
+Passport: $8421192
+Bank: ICICI Bank Account: [REDACTED] [REDACTED]: [REDACTED] UPI: [REDACTED] IP: [REDACTED] Device ID: [REDACTED]
+Fingerprint: [REDACTED]
+Face Template: [REDACTED]
+Karthik Reddy DOB: [REDACTED]
+Mobile: [REDACTED]
+Email:
+[REDACTED]
+Address: [REDACTED] No. 36, Hyderabad PAN: [REDACTED] [REDACTED]: [REDACTED]
+Passport: [REDACTED]
+Bank: SBI Account: [REDACTED]8 [REDACTED]: [REDACTED] UPI: [REDACTED] IP: [REDACTED] Device ID: [REDACTED]
+Fingerprint: fp_hash_771ab2ef
+Face Template: [REDACTED]
+Neha Kapoor DOB: [REDACTED]
+Mobile: [REDACTED]
+Email:
+[REDACTED]
+Address: 78 [REDACTED],
+[REDACTED]
+[REDACTED]: [REDACTED] Aadhaar: [REDACTED]
+Passport: [REDACTED]
+Bank: Axis Bank Account: [REDACTED] [REDACTED]: UTIBO001123 UPI: [REDACTED] IP: [REDACTED] Device ID: [REDACTED]
+Fingerprint: fp_hash_93a1cde3
+Face Template: [REDACTED]

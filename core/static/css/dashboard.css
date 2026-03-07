@@ -754,6 +754,8 @@
 .detection-list {
     display: flex;
     flex-direction: column;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .detection-item {

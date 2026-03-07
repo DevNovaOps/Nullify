@@ -92,7 +92,7 @@ const RiskMeter = {
     }
 };
 
-// ── Instant Scan (AJAX) ──────────────────────────────────────────────
+// ── Instant Scan (AJAX with fallback) ────────────────────────────────
 const InstantScan = {
     init() {
         const form = document.getElementById('instant-scan-form');
@@ -110,15 +110,36 @@ const InstantScan = {
 
             try {
                 const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
                 const resp = await fetch('/scan/', {
                     method: 'POST',
-                    headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: {
+                        'X-CSRFToken': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
                     body: `text=${encodeURIComponent(text)}`,
+                    signal: controller.signal,
                 });
+                clearTimeout(timeoutId);
+
+                if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+
                 const data = await resp.json();
                 this.displayResults(data);
-            } catch (err) { console.error('Scan failed:', err); }
-            finally { btn.innerHTML = orig; btn.disabled = false; }
+            } catch (err) {
+                console.error('Scan AJAX failed, falling back to form submit:', err);
+                // On AJAX failure, submit the form normally (server-side rendering)
+                form.removeEventListener('submit', arguments.callee);
+                btn.innerHTML = orig;
+                btn.disabled = false;
+                form.submit();
+                return;
+            }
+            btn.innerHTML = orig;
+            btn.disabled = false;
         });
     },
 
@@ -126,9 +147,16 @@ const InstantScan = {
         const container = document.getElementById('scan-results');
         const reference = document.getElementById('scan-reference');
         if (!container) return;
+
+        // Remove d-none class AND set display
+        container.classList.remove('d-none');
         container.style.display = 'block';
         container.classList.add('animate-fade');
         if (reference) reference.style.display = 'none';
+
+        // Update total count badge
+        const totalEl = container.querySelector('.scan-total');
+        if (totalEl) totalEl.textContent = (data.total || 0) + ' PII found';
 
         const meterEl = container.querySelector('.risk-meter');
         if (meterEl) {
@@ -145,6 +173,16 @@ const InstantScan = {
         const previewEl = container.querySelector('.text-preview');
         if (previewEl) previewEl.innerHTML = data.highlighted || 'No PII detected.';
 
+        // Update method badges
+        const methodContainer = container.querySelector('.d-flex.gap-8.flex-wrap');
+        if (methodContainer && data.method_summary) {
+            let html = '';
+            if (data.method_summary.regex) html += `<span class="method-badge method-regex"><span>Regex: ${data.method_summary.regex}</span></span>`;
+            if (data.method_summary.nlp) html += `<span class="method-badge method-nlp"><span>NLP: ${data.method_summary.nlp}</span></span>`;
+            if (data.method_summary.ml) html += `<span class="method-badge method-ml"><span>ML: ${data.method_summary.ml}</span></span>`;
+            methodContainer.innerHTML = html;
+        }
+
         const summaryEl = container.querySelector('.pii-summary-list');
         if (summaryEl) {
             summaryEl.innerHTML = '';
@@ -157,8 +195,8 @@ const InstantScan = {
             }
         }
 
-        const totalEl = container.querySelector('.scan-total');
-        if (totalEl) totalEl.textContent = data.total || 0;
+        // Scroll results into view
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 

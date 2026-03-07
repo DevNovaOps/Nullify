@@ -138,6 +138,49 @@ class InstantScanForm(forms.Form):
     )
 
 
+class SanitizationRequestForm(forms.Form):
+    SANITIZATION_METHODS = [
+        ('redaction', 'Redaction — Replace with [REDACTED]'),
+        ('masking', 'Masking — Partial character reveal'),
+        ('tokenization', 'Tokenization — Replace with unique tokens'),
+    ]
+    data_text = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'placeholder': 'Paste your text data here...',
+            'rows': 8,
+            'id': 'request-data-text',
+        })
+    )
+    data_file = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'id': 'request-data-file',
+        })
+    )
+    method = forms.ChoiceField(
+        choices=SANITIZATION_METHODS,
+        initial='redaction',
+        widget=forms.Select(attrs={'id': 'request-method'})
+    )
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'placeholder': 'Add a note for the admin (optional)...',
+            'rows': 3,
+            'id': 'request-note',
+        })
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        data_text = cleaned_data.get('data_text', '').strip()
+        data_file = cleaned_data.get('data_file')
+        if not data_text and not data_file:
+            raise forms.ValidationError("Please provide either text data or upload a file.")
+        return cleaned_data
+
+
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = User

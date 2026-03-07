@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, UploadedFile, PIIDetection, SanitizedFile, AuditLog
+from .models import User, UploadedFile, PIIDetection, SanitizedFile, AuditLog, SanitizationRequest
 
 
 @admin.register(User)
@@ -36,3 +36,12 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ['action']
     search_fields = ['details']
     readonly_fields = ['timestamp']
+
+
+@admin.register(SanitizationRequest)
+class SanitizationRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'method', 'status', 'created_at']
+    list_filter = ['status', 'method']
+    search_fields = ['user__username', 'note']
+    readonly_fields = ['created_at', 'updated_at']
+

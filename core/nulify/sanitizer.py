@@ -103,6 +103,67 @@ def _mask_value(original, pii_type):
             return '****@' + parts[1]
         return '****'
 
+    elif pii_type == 'SSN':
+        # Show last 4 digits
+        digits = re.sub(r'[\s\-]', '', original)
+        if len(digits) >= 4:
+            return 'XXX-XX-' + digits[-4:]
+        return '***-**-****'
+
+    elif pii_type == 'Bank Account':
+        digits = re.sub(r'[\s\-]', '', original)
+        if len(digits) >= 4:
+            return '*' * (len(digits) - 4) + digits[-4:]
+        return '*' * len(original)
+
+    elif pii_type == 'IFSC':
+        if len(original) >= 4:
+            return original[:4] + '*' * (len(original) - 4)
+        return '*' * len(original)
+
+    elif pii_type == 'Device ID':
+        return '█' * len(original)
+
+    elif pii_type == 'Fingerprint':
+        return '[REDACTED]'
+
+    elif pii_type == 'Face Template':
+        return '[REDACTED]'
+
+    elif pii_type == 'Name':
+        parts = original.split()
+        if len(parts) >= 2:
+            # Show first letter of first name, mask rest
+            masked_parts = []
+            for p in parts:
+                if len(p) > 1:
+                    masked_parts.append(p[0] + '*' * (len(p) - 1))
+                else:
+                    masked_parts.append('*')
+            return ' '.join(masked_parts)
+        if len(original) > 2:
+            return original[0] + '*' * (len(original) - 2) + original[-1]
+        return '*' * len(original)
+
+    elif pii_type == 'Address':
+        # Heavily mask, show only first few characters
+        if len(original) > 5:
+            return original[:3] + '*' * min(20, len(original) - 3)
+        return '*' * len(original)
+
+    elif pii_type == 'License':
+        if len(original) >= 4:
+            return original[:2] + '*' * (len(original) - 4) + original[-2:]
+        return '*' * len(original)
+
+    elif pii_type == 'Routing Number':
+        return 'XXX-XX-' + original[-4:]
+
+    elif pii_type == 'Employee ID':
+        if len(original) >= 3:
+            return original[0] + '*' * (len(original) - 2) + original[-1]
+        return '*' * len(original)
+
     # Default: mask all but first and last char
     if len(original) > 2:
         return original[0] + '*' * (len(original) - 2) + original[-1]

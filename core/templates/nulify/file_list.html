@@ -2,12 +2,12 @@
 {% load static %}
 
 {% block title %}Files{% endblock %}
-{% block page_title %}Processed Files{% endblock %}
+{% block page_title %}{% if is_admin %}Processed Files{% else %}Sanitized Files{% endif %}{% endblock %}
 
 {% block content %}
 <div class="card animate-fade">
     <div class="card-header">
-        <h3>All Files</h3>
+        <h3>{% if is_admin %}All Files{% else %}Available Sanitized Files{% endif %}</h3>
         <div class="filter-bar">
             <div class="search-box">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -22,10 +22,10 @@
                     <tr>
                         <th>Filename</th>
                         <th>Type</th>
-                        <th>PII Count</th>
-                        <th>Risk</th>
+                        {% if is_admin %}<th>PII Count</th>{% endif %}
+                        {% if is_admin %}<th>Risk</th>{% endif %}
                         <th>Status</th>
-                        <th>Uploaded</th>
+                        <th>{% if is_admin %}Uploaded{% else %}Processed{% endif %}</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -34,7 +34,8 @@
                     <tr>
                         <td style="font-weight:600;">{{ f.original_filename|truncatechars:30 }}</td>
                         <td><span class="badge badge-cyan">{{ f.file_type|upper }}</span></td>
-                        <td>{{ f.pii_count }}</td>
+                        {% if is_admin %}<td>{{ f.pii_count }}</td>{% endif %}
+                        {% if is_admin %}
                         <td>
                             <div class="d-flex align-center gap-8">
                                 <div class="risk-bar">
@@ -43,9 +44,10 @@
                                 <span class="text-sm">{{ f.risk_score }}%</span>
                             </div>
                         </td>
+                        {% endif %}
                         <td>
                             {% if f.status == 'completed' %}
-                            <span class="badge badge-success">Done</span>
+                            <span class="badge badge-success">{% if is_admin %}Done{% else %}Available{% endif %}</span>
                             {% elif f.status == 'processing' %}
                             <span class="badge badge-warning">Processing</span>
                             {% elif f.status == 'failed' %}
@@ -60,7 +62,7 @@
                                 <a href="{% url 'file_detail' f.id %}" class="btn btn-ghost btn-sm" title="View Results">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </a>
-                                {% if user.role == 'admin' %}
+                                {% if is_admin %}
                                 <a href="{% url 'download_original' f.id %}" class="btn btn-ghost btn-sm" title="Download Original">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                                 </a>
@@ -73,13 +75,15 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7">
+                        <td colspan="{% if is_admin %}7{% else %}5{% endif %}">
                             <div class="empty-state">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;margin-bottom:12px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                                 <h3>No files found</h3>
+                                {% if is_admin %}
                                 <p>Upload files to start processing</p>
-                                {% if user.role == 'admin' %}
                                 <a href="{% url 'upload' %}" class="btn btn-primary" style="margin-top:12px;">Upload Files</a>
+                                {% else %}
+                                <p>Sanitized files will appear here after an admin processes them</p>
                                 {% endif %}
                             </div>
                         </td>

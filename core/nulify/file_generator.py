@@ -8,10 +8,156 @@ from django.core.files.base import ContentFile
 
 def generate_sanitized_file(uploaded_file, sanitized_text):
     """
-    Create a sanitized text file.
+    Create a sanitized file in the same format as the original.
     Returns (filename, ContentFile) tuple for saving to SanitizedFile.sanitized_file.
     """
     base_name = uploaded_file.original_filename.rsplit('.', 1)[0]
+    file_type = uploaded_file.file_type.lower()
+
+    # ── DOCX output ──
+    if file_type == 'docx':
+        try:
+            from docx import Document
+            doc = Document()
+            for line in sanitized_text.split('\n'):
+                doc.add_paragraph(line)
+            buf = BytesIO()
+            doc.save(buf)
+            buf.seek(0)
+            filename = f"sanitized_{uploaded_file.id}_{base_name}.docx"
+            return filename, ContentFile(buf.read())
+        except ImportError:
+            pass  # Fall through to text output
+
+    # ── PDF output ──
+    if file_type == 'pdf':
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.units import cm
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet
+            buf = BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4,
+                                    topMargin=2*cm, bottomMargin=2*cm,
+                                    leftMargin=2*cm, rightMargin=2*cm)
+            styles = getSampleStyleSheet()
+            story = []
+
+            # Split lines and detect table rows (pipe-delimited)
+            lines = sanitized_text.split('\n')
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                # Check if this line looks like a table row (contains |)
+                if '|' in line and line.strip():
+                    # Collect consecutive pipe-delimited rows as a table
+                    table_rows = []
+                    while i < len(lines) and '|' in lines[i] and lines[i].strip():
+                        cells = [c.strip() for c in lines[i].split('|')]
+                        # Remove empty leading/trailing cells from split
+                        cells = [c for c in cells if c or len(cells) <= 3]
+                        if cells:
+                            table_rows.append(cells)
+                        i += 1
+
+                    if table_rows:
+                        # Normalize column count
+                        max_cols = max(len(row) for row in table_rows)
+                        for row in table_rows:
+                            while len(row) < max_cols:
+                                row.append('')
+
+                        # Calculate column widths
+                        available_width = A4[0] - 4 * cm
+                        col_width = available_width / max_cols if max_cols > 0 else available_width
+
+                        # Wrap cell text in Paragraphs for text wrapping
+                        para_rows = []
+                        for row in table_rows:
+                            para_row = [Paragraph(
+                                cell.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'),
+                                styles['Normal']
+                            ) for cell in row]
+                            para_rows.append(para_row)
+
+                        t = Table(para_rows, colWidths=[col_width] * max_cols)
+                        table_style = [
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                            ('TOPPADDING', (0, 0), (-1, -1), 4),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ]
+                        # Style first row as header
+                        if len(para_rows) > 1:
+                            table_style.extend([
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7B61FF')),
+                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                ('ROWBACKGROUNDS', (0, 1), (-1, -1),
+                                 [colors.white, colors.HexColor('#F8FAFC')]),
+                            ])
+                        t.setStyle(TableStyle(table_style))
+                        story.append(Spacer(1, 6))
+                        story.append(t)
+                        story.append(Spacer(1, 6))
+                else:
+                    escaped = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                    story.append(Paragraph(escaped, styles['Normal']))
+                    story.append(Spacer(1, 4))
+                    i += 1
+
+            doc.build(story)
+            buf.seek(0)
+            filename = f"sanitized_{uploaded_file.id}_{base_name}.pdf"
+            return filename, ContentFile(buf.read())
+        except ImportError:
+            pass  # Fall through to text output
+
+    # ── SQL output ──
+    if file_type == 'sql':
+        filename = f"sanitized_{uploaded_file.id}_{base_name}.sql"
+        content = ContentFile(sanitized_text.encode('utf-8'))
+        return filename, content
+
+    # ── XLSX output ──
+    if file_type == 'xlsx':
+        try:
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Sanitized"
+            for line in sanitized_text.split('\n'):
+                if line.startswith('--- Sheet:') and line.endswith('---'):
+                    continue  # Skip sheet header markers
+                if '|' in line:
+                    cells = [cell.strip() for cell in line.split('|')]
+                else:
+                    cells = [line]
+                ws.append(cells)
+            buf = BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            filename = f"sanitized_{uploaded_file.id}_{base_name}.xlsx"
+            return filename, ContentFile(buf.read())
+        except ImportError:
+            pass  # Fall through to text output
+
+    # ── CSV output ──
+    if file_type == 'csv':
+        filename = f"sanitized_{uploaded_file.id}_{base_name}.csv"
+        content = ContentFile(sanitized_text.encode('utf-8'))
+        return filename, content
+
+    # ── JSON output ──
+    if file_type == 'json':
+        filename = f"sanitized_{uploaded_file.id}_{base_name}.json"
+        content = ContentFile(sanitized_text.encode('utf-8'))
+        return filename, content
+
+    # ── Default: TXT output ──
     filename = f"sanitized_{uploaded_file.id}_{base_name}.txt"
     content = ContentFile(sanitized_text.encode('utf-8'))
     return filename, content

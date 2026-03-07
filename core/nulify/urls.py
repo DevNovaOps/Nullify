@@ -31,6 +31,7 @@ urlpatterns = [
     path('upload/', views.upload_file, name='upload'),
     path('files/', views.file_list, name='file_list'),
     path('files/<int:file_id>/', views.file_detail, name='file_detail'),
+    path('files/<int:file_id>/deep-scan/', views.deep_scan, name='deep_scan'),
 
     # Downloads
     path('download/sanitized/<int:sanitized_id>/', views.download_sanitized, name='download_sanitized'),
@@ -55,4 +56,10 @@ urlpatterns = [
     path('settings/profile/', views.settings_update_profile, name='settings_update_profile'),
     path('settings/password/', views.settings_change_password, name='settings_change_password'),
     path('settings/delete/', views.settings_delete_account, name='settings_delete_account'),
+
+    # Sanitization Requests
+    path('request-sanitize/', views.submit_request, name='submit_request'),
+    path('my-requests/', views.my_requests, name='my_requests'),
+    path('manage-requests/', views.manage_requests, name='manage_requests'),
+    path('manage-requests/<int:request_id>/process/', views.process_request, name='process_request'),
 ]

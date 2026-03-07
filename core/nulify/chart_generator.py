@@ -70,14 +70,17 @@ def generate_pii_distribution_chart(pii_data):
 
     wedges, texts, autotexts = ax.pie(
         values, labels=None, colors=colors, autopct='%1.0f%%',
-        startangle=90, pctdistance=0.78,
+        startangle=90, pctdistance=0.85,
         wedgeprops=dict(width=0.35, edgecolor='none', linewidth=0),
         textprops=dict(color='#E2E8F0', fontsize=9, fontweight='bold'),
     )
 
-    for t in autotexts:
+    # Hide text for small slices to prevent overlap
+    for i, t in enumerate(autotexts):
         t.set_fontsize(8)
         t.set_color('#E2E8F0')
+        if values[i] / sum(values) < 0.05:
+            t.set_visible(False)
 
     ax.legend(
         wedges, [f'{l} ({v})' for l, v in zip(labels, values)],

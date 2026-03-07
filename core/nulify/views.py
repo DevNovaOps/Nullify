@@ -17,16 +17,17 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings as django_settings
 from datetime import timedelta
-from .models import User, UploadedFile, PIIDetection, SanitizedFile, AuditLog
+from .models import User, UploadedFile, PIIDetection, SanitizedFile, AuditLog, SanitizationRequest
 from .forms import (
     LoginForm, RegisterForm, FileUploadForm, InstantScanForm,
-    ForgotPasswordForm, SetNewPasswordForm,
+    ForgotPasswordForm, SetNewPasswordForm, SanitizationRequestForm,
 )
 from .decorators import admin_required
 from .pii_engine import detect_pii, detect_pii_regex_only, calculate_risk_score, get_pii_summary, get_method_summary, get_detection_methods_available
-from .extractors import extract_text
+from .extractors import extract_text, extract_text_with_boxes, IMAGE_TYPES
 from .sanitizer import sanitize_text
 from .file_generator import generate_sanitized_file, generate_report_pdf
+from .image_sanitizer import sanitize_image, generate_image_preview
 from .chart_generator import (
     generate_pii_distribution_chart,
     generate_risk_distribution_chart,
@@ -451,7 +452,8 @@ def upload_file(request):
         results = []
         for f in files:
             ext = os.path.splitext(f.name)[1].lower().lstrip('.')
-            if ext not in ['pdf', 'docx', 'txt', 'csv', 'sql', 'json']:
+            if ext not in ['pdf', 'docx', 'txt', 'csv', 'xlsx', 'sql', 'json',
+                          'png', 'jpg', 'jpeg', 'bmp', 'tiff', 'webp']:
                 results.append({
                     'name': f.name, 'success': False,
                     'error': f'Unsupported file type: .{ext}',
@@ -475,8 +477,8 @@ def upload_file(request):
             )
 
             try:
-                # 1. Extract text
-                text = extract_text(uploaded.file.path, ext)
+                # 1. Extract text (with bounding boxes for images)
+                text, ocr_boxes = extract_text_with_boxes(uploaded.file.path, ext)
                 uploaded.extracted_text = text
 
                 # 2. Detect PII
@@ -502,11 +504,31 @@ def upload_file(request):
                 uploaded.risk_score = calculate_risk_score(detections)
                 uploaded.pii_count = len(detections)
 
-                # 5. Sanitize
+                # 5. Sanitize text
                 sanitized_text = sanitize_text(text, detections, method)
 
                 # 6. Generate output file
-                filename, content = generate_sanitized_file(uploaded, sanitized_text)
+                is_image = ext in IMAGE_TYPES
+                if is_image and ocr_boxes and detections:
+                    # Image: generate redacted image with PII blacked out
+                    det_list = [{'type': d['type'], 'value': d['value'],
+                                 'start': d['start'], 'end': d['end']}
+                                for d in detections]
+                    img_buf = sanitize_image(
+                        uploaded.file.path, det_list, ocr_boxes, text, method
+                    )
+                    from django.core.files.base import ContentFile
+                    filename = f"sanitized_{uploaded.id}_{os.path.splitext(f.name)[0]}.png"
+                    content = ContentFile(img_buf.read())
+                elif is_image:
+                    # Image with no PII: save original as sanitized
+                    with open(uploaded.file.path, 'rb') as img_f:
+                        from django.core.files.base import ContentFile
+                        filename = f"sanitized_{uploaded.id}_{os.path.splitext(f.name)[0]}.png"
+                        content = ContentFile(img_f.read())
+                else:
+                    filename, content = generate_sanitized_file(uploaded, sanitized_text)
+
                 sanitized = SanitizedFile(
                     original_file=uploaded,
                     method=method,
@@ -522,6 +544,24 @@ def upload_file(request):
                 AuditLog.objects.create(
                     user=request.user, action='process', file=uploaded,
                     details=f'Processed {f.name}: {len(detections)} PII found, method={method}',
+                    ip_address=_ip(request),
+                )
+
+                # PII Detection audit event — detailed breakdown
+                pii_type_counts = {}
+                for d in detections:
+                    pii_type_counts[d['type']] = pii_type_counts.get(d['type'], 0) + 1
+                pii_detail = ', '.join(f'{t}: {c}' for t, c in sorted(pii_type_counts.items()))
+                AuditLog.objects.create(
+                    user=request.user, action='process', file=uploaded,
+                    details=f'PII detection results for {f.name} — {pii_detail or "No PII found"}. Risk score: {uploaded.risk_score}%',
+                    ip_address=_ip(request),
+                )
+
+                # Sanitization audit event
+                AuditLog.objects.create(
+                    user=request.user, action='sanitize', file=uploaded,
+                    details=f'Sanitized {f.name} using {method} method. Output saved.',
                     ip_address=_ip(request),
                 )
 
@@ -559,10 +599,16 @@ def upload_file(request):
 
 @login_required
 def file_list(request):
-    if request.user.is_admin():
+    is_admin = request.user.is_admin()
+
+    if is_admin:
         files = UploadedFile.objects.select_related('uploaded_by').all()
     else:
-        files = UploadedFile.objects.filter(status='completed')
+        # Standard users only see files that have been sanitized
+        files = UploadedFile.objects.filter(
+            status='completed',
+            sanitized_versions__isnull=False,
+        ).distinct()
 
     # Search filter
     q = request.GET.get('q', '')
@@ -572,7 +618,11 @@ def file_list(request):
             Q(file_type__icontains=q)
         )
 
-    return render(request, 'nulify/file_list.html', {'files': files, 'query': q})
+    return render(request, 'nulify/file_list.html', {
+        'files': files,
+        'query': q,
+        'is_admin': is_admin,
+    })
 
 
 @login_required
@@ -584,16 +634,62 @@ def file_detail(request, file_id):
         messages.error(request, 'Access denied.')
         return redirect('file_list')
 
+    is_admin = request.user.is_admin()
+
+    # ── Re-sanitize with different method (POST) ────────────────────
+    if request.method == 'POST' and is_admin:
+        new_method = request.POST.get('resanitize_method', '')
+        if new_method in ('masking', 'redaction', 'tokenization'):
+            det_list_raw = [
+                {'type': d.pii_type, 'value': d.original_value,
+                 'start': d.start_position, 'end': d.end_position}
+                for d in uploaded.detections.all()
+            ]
+            new_sanitized_text = sanitize_text(uploaded.extracted_text, det_list_raw, new_method)
+
+            # Image-aware output generation
+            is_img = uploaded.file_type.lower() in IMAGE_TYPES
+            if is_img and det_list_raw:
+                _text, _boxes = extract_text_with_boxes(uploaded.file.path, uploaded.file_type)
+                img_buf = sanitize_image(uploaded.file.path, det_list_raw, _boxes or [], _text or '', new_method)
+                from django.core.files.base import ContentFile
+                filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
+                content = ContentFile(img_buf.read())
+            elif is_img:
+                with open(uploaded.file.path, 'rb') as img_f:
+                    from django.core.files.base import ContentFile
+                    filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
+                    content = ContentFile(img_f.read())
+            else:
+                filename, content = generate_sanitized_file(uploaded, new_sanitized_text)
+
+            new_san = SanitizedFile(
+                original_file=uploaded,
+                method=new_method,
+                sanitized_text=new_sanitized_text,
+                created_by=request.user,
+            )
+            new_san.sanitized_file.save(filename, content)
+            new_san.save()
+
+            AuditLog.objects.create(
+                user=request.user, action='sanitize', file=uploaded,
+                details=f'Re-sanitized {uploaded.original_filename} with method={new_method}',
+                ip_address=_ip(request),
+            )
+            messages.success(request, f'File re-sanitized with {new_method} method.')
+            return redirect('file_detail', file_id=uploaded.id)
+
     detections = list(uploaded.detections.all())
     sanitized = uploaded.sanitized_versions.first()
 
-    # Build highlighted text
+    # Build highlighted text (admin only)
     det_list = [
         {'type': d.pii_type, 'value': d.original_value,
          'start': d.start_position, 'end': d.end_position}
         for d in detections
     ]
-    highlighted = _highlight_pii(uploaded.extracted_text, det_list)
+    highlighted = _highlight_pii(uploaded.extracted_text, det_list) if is_admin else ''
 
     # PII summary
     pii_summary = {}
@@ -612,6 +708,22 @@ def file_detail(request, file_id):
         m = d.detection_method
         method_summary[m] = method_summary.get(m, 0) + 1
 
+    # For standard users, mask the detection original values
+    if not is_admin:
+        masked_detections = []
+        for d in detections:
+            masked_d = d
+            masked_d._masked_value = '•' * min(len(d.original_value), 8)
+            masked_detections.append(masked_d)
+        detections = masked_detections
+
+    # Log view access
+    AuditLog.objects.create(
+        user=request.user, action='process', file=uploaded,
+        details=f'Viewed file details: {uploaded.original_filename}',
+        ip_address=_ip(request),
+    )
+
     context = {
         'file': uploaded,
         'detections': detections,
@@ -621,8 +733,115 @@ def file_detail(request, file_id):
         'pii_summary': pii_summary,
         'pii_summary_chart': pii_summary_chart,
         'method_summary': method_summary,
+        'is_admin': is_admin,
+        'is_image': uploaded.file_type.lower() in IMAGE_TYPES,
     }
     return render(request, 'nulify/results.html', context)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  DEEP SCAN (AI-enhanced PII detection)
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+@admin_required
+def deep_scan(request, file_id):
+    """Re-run PII detection with all methods (regex + NLP + ML) on an existing file."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    uploaded = get_object_or_404(UploadedFile, id=file_id)
+
+    try:
+        text = uploaded.extracted_text
+        if not text:
+            # Re-extract if needed
+            text = extract_text(uploaded.file.path, uploaded.file_type)
+            uploaded.extracted_text = text
+
+        # Run ALL detection methods: regex + spaCy NLP + Ollama ML
+        detections = detect_pii(text, methods=['regex', 'nlp', 'ml'])
+
+        # Clear old detections and save new ones
+        uploaded.detections.all().delete()
+
+        pii_objects = []
+        for d in detections:
+            pii_objects.append(PIIDetection(
+                file=uploaded,
+                pii_type=d['type'],
+                original_value=d['value'],
+                start_position=d['start'],
+                end_position=d['end'],
+                line_number=d.get('line', 0),
+                detection_method=d.get('method', 'regex'),
+                confidence=d.get('confidence', 1.0),
+                sensitivity=d.get('sensitivity', 'medium'),
+            ))
+        PIIDetection.objects.bulk_create(pii_objects)
+
+        # Update risk score
+        uploaded.risk_score = calculate_risk_score(detections)
+        uploaded.pii_count = len(detections)
+        uploaded.save()
+
+        # Re-sanitize with the latest method used
+        sanitized = uploaded.sanitized_versions.first()
+        method = sanitized.method if sanitized else 'redaction'
+        sanitized_text = sanitize_text(text, detections, method)
+
+        # Image-aware output generation
+        is_img = uploaded.file_type.lower() in IMAGE_TYPES
+        if is_img and detections:
+            _text, _boxes = extract_text_with_boxes(uploaded.file.path, uploaded.file_type)
+            det_list = [{'type': d['type'], 'value': d['value'],
+                         'start': d['start'], 'end': d['end']}
+                        for d in detections]
+            img_buf = sanitize_image(uploaded.file.path, det_list, _boxes or [], _text or '', method)
+            from django.core.files.base import ContentFile
+            filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
+            content = ContentFile(img_buf.read())
+        elif is_img:
+            with open(uploaded.file.path, 'rb') as img_f:
+                from django.core.files.base import ContentFile
+                filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
+                content = ContentFile(img_f.read())
+        else:
+            filename, content = generate_sanitized_file(uploaded, sanitized_text)
+
+        new_san = SanitizedFile(
+            original_file=uploaded,
+            method=method,
+            detection_source='ner_ml',
+            sanitized_text=sanitized_text,
+            created_by=request.user,
+        )
+        new_san.sanitized_file.save(filename, content)
+        new_san.save()
+
+        # Audit log
+        method_counts = {}
+        for d in detections:
+            m = d.get('method', 'regex')
+            method_counts[m] = method_counts.get(m, 0) + 1
+        method_detail = ', '.join(f'{m}: {c}' for m, c in sorted(method_counts.items()))
+
+        AuditLog.objects.create(
+            user=request.user, action='process', file=uploaded,
+            details=f'Deep Scan completed on {uploaded.original_filename} — {len(detections)} PII found ({method_detail}). Risk: {uploaded.risk_score}%',
+            ip_address=_ip(request),
+        )
+
+        return JsonResponse({
+            'success': True,
+            'pii_count': len(detections),
+            'risk_score': uploaded.risk_score,
+            'method_counts': method_counts,
+            'message': f'Deep Scan complete: {len(detections)} PII items found.',
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -639,12 +858,27 @@ def download_sanitized(request, sanitized_id):
         ip_address=_ip(request),
     )
 
+    # Determine content type from the sanitized file name
+    san_filename = sanitized.sanitized_file.name if sanitized.sanitized_file else ''
+    ext = os.path.splitext(san_filename)[1].lower()
+    content_types = {
+        '.pdf': 'application/pdf',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.csv': 'text/csv; charset=utf-8',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.json': 'application/json; charset=utf-8',
+        '.sql': 'text/plain; charset=utf-8',
+        '.txt': 'text/plain; charset=utf-8',
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+
     response = HttpResponse(
         sanitized.sanitized_file.read(),
-        content_type='text/plain; charset=utf-8',
+        content_type=content_type,
     )
     safe_name = sanitized.original_file.original_filename.rsplit('.', 1)[0]
-    response['Content-Disposition'] = f'attachment; filename="sanitized_{safe_name}.txt"'
+    out_ext = ext if ext else '.txt'
+    response['Content-Disposition'] = f'attachment; filename="sanitized_{safe_name}{out_ext}"'
     return response
 
 
@@ -709,18 +943,22 @@ def analytics(request):
 
     # Files over time (last 30 days)
     thirty_ago = timezone.now() - timedelta(days=30)
-    files_time = list(
-        UploadedFile.objects
-        .filter(uploaded_at__gte=thirty_ago)
-        .annotate(date=TruncDate('uploaded_at'))
-        .values('date')
-        .annotate(count=Count('id'))
-        .order_by('date')
-    )
-    files_time_formatted = [
-        {'date': f['date'].strftime('%b %d'), 'count': f['count']}
-        for f in files_time
-    ]
+    recent_files = UploadedFile.objects.filter(uploaded_at__gte=thirty_ago).values_list('uploaded_at', flat=True)
+    
+    # Aggregate dates in python to avoid SQLite TruncDate issues
+    date_counts = {}
+    for dt in recent_files:
+        if dt:
+            d_str = dt.strftime('%b %d')
+            date_counts[d_str] = date_counts.get(d_str, 0) + 1
+            
+    # Sort them by date and format for chart
+    if date_counts:
+        from datetime import datetime
+        sorted_dates = sorted(date_counts.keys(), key=lambda d: datetime.strptime(d, '%b %d'))
+        files_time_formatted = [{'date': d, 'count': date_counts[d]} for d in sorted_dates]
+    else:
+        files_time_formatted = []
 
     # Risk distribution
     low = UploadedFile.objects.filter(risk_score__lt=30).count()
@@ -782,36 +1020,25 @@ def api_analytics(request):
 
     # Files over time (last 30 days)
     thirty_ago = timezone.now() - timedelta(days=30)
-    files_time = list(
-        UploadedFile.objects
-        .filter(uploaded_at__gte=thirty_ago)
-        .annotate(date=TruncDate('uploaded_at'))
-        .values('date')
-        .annotate(count=Count('id'))
-        .order_by('date')
-    )
-
-    # Risk distribution
-    low = UploadedFile.objects.filter(risk_score__lt=30).count()
-    medium = UploadedFile.objects.filter(risk_score__gte=30, risk_score__lt=70).count()
-    high = UploadedFile.objects.filter(risk_score__gte=70).count()
-
-    # Method distribution
-    method_dist = list(
-        SanitizedFile.objects.values('method')
-        .annotate(count=Count('id'))
-        .order_by('-count')
-    )
-
-    avg_risk_val = UploadedFile.objects.aggregate(avg=Avg('risk_score'))['avg']
+    recent_files = UploadedFile.objects.filter(uploaded_at__gte=thirty_ago).values_list('uploaded_at', flat=True)
+    
+    date_counts = {}
+    for dt in recent_files:
+        if dt:
+            d_str = dt.strftime('%Y-%m-%d')
+            date_counts[d_str] = date_counts.get(d_str, 0) + 1
+            
+    if date_counts:
+        from datetime import datetime
+        sorted_dates = sorted(date_counts.keys(), key=lambda d: datetime.strptime(d, '%Y-%m-%d'))
+        files_time_formatted = [{'date': d, 'count': date_counts[d]} for d in sorted_dates]
+    else:
+        files_time_formatted = []
 
     data = {
         'pii_distribution': pii_dist,
         'file_distribution': file_dist,
-        'files_over_time': [
-            {'date': f['date'].strftime('%Y-%m-%d'), 'count': f['count']}
-            for f in files_time
-        ],
+        'files_over_time': files_time_formatted,
         'risk_distribution': {'low': low, 'medium': medium, 'high': high},
         'method_distribution': method_dist,
         'summary': {
@@ -1022,3 +1249,190 @@ def settings_delete_account(request):
     messages.info(request, 'Your account has been permanently deleted.')
     return redirect('home')
 
+
+# ══════════════════════════════════════════════════════════════════════
+#  SANITIZATION REQUESTS
+# ══════════════════════════════════════════════════════════════════════
+
+@login_required
+def submit_request(request):
+    """User submits a sanitization request to the admin."""
+    if request.method == 'POST':
+        form = SanitizationRequestForm(request.POST, request.FILES)
+        if form.is_valid():
+            san_req = SanitizationRequest(
+                user=request.user,
+                data_text=form.cleaned_data.get('data_text', ''),
+                method=form.cleaned_data['method'],
+                note=form.cleaned_data.get('note', ''),
+            )
+            if form.cleaned_data.get('data_file'):
+                san_req.data_file = form.cleaned_data['data_file']
+                san_req.original_filename = form.cleaned_data['data_file'].name
+            san_req.save()
+
+            AuditLog.objects.create(
+                user=request.user, action='upload',
+                details=f'Sanitization request #{san_req.pk} submitted (method={san_req.method})',
+                ip_address=_ip(request),
+            )
+            messages.success(request, 'Your sanitization request has been submitted! An admin will process it shortly.')
+            return redirect('my_requests')
+    else:
+        form = SanitizationRequestForm()
+
+    return render(request, 'nulify/request_sanitize.html', {'form': form})
+
+
+@login_required
+def my_requests(request):
+    """User views their own sanitization requests."""
+    requests_list = SanitizationRequest.objects.filter(user=request.user)
+    return render(request, 'nulify/my_requests.html', {'requests': requests_list})
+
+
+@login_required
+@admin_required
+def manage_requests(request):
+    """Admin views all sanitization requests."""
+    status_filter = request.GET.get('status', '')
+    reqs = SanitizationRequest.objects.select_related('user', 'result_file').all()
+    if status_filter:
+        reqs = reqs.filter(status=status_filter)
+    return render(request, 'nulify/manage_requests.html', {
+        'requests': reqs,
+        'current_status': status_filter,
+    })
+
+
+@login_required
+@admin_required
+def process_request(request, request_id):
+    """Admin processes a sanitization request."""
+    san_req = get_object_or_404(SanitizationRequest, id=request_id)
+
+    if request.method != 'POST':
+        return redirect('manage_requests')
+
+    action = request.POST.get('action', '')
+
+    if action == 'reject':
+        san_req.status = 'rejected'
+        san_req.admin_response = request.POST.get('admin_response', 'Request rejected by admin.')
+        san_req.save()
+        messages.info(request, f'Request #{san_req.pk} has been rejected.')
+        return redirect('manage_requests')
+
+    # Process the request
+    san_req.status = 'processing'
+    san_req.save()
+
+    try:
+        method = san_req.method
+        text = san_req.data_text
+
+        ocr_boxes = []
+        if san_req.data_file:
+            # Extract text and OCR boxes from the uploaded file
+            ext = os.path.splitext(san_req.original_filename)[1].lower().lstrip('.')
+            try:
+                text, ocr_boxes = extract_text_with_boxes(san_req.data_file.path, ext)
+            except NotImplementedError:
+                text = extract_text(san_req.data_file.path, ext)
+
+        if not text:
+            san_req.status = 'rejected'
+            san_req.admin_response = 'No text could be extracted from the submitted data.'
+            san_req.save()
+            messages.error(request, 'No text could be extracted from the submitted data.')
+            return redirect('manage_requests')
+
+        # Detect PII
+        detections = detect_pii(text)
+
+        # Sanitize
+        sanitized_text = sanitize_text(text, detections, method)
+
+        # Create an UploadedFile record for tracking
+        uploaded = UploadedFile.objects.create(
+            original_filename=san_req.original_filename or 'user_request_text.txt',
+            file_type='txt',
+            file_size=len(text.encode('utf-8')),
+            uploaded_by=san_req.user,
+            status='completed',
+            risk_score=calculate_risk_score(detections),
+            extracted_text=text,
+            pii_count=len(detections),
+        )
+        if san_req.data_file:
+            uploaded.file = san_req.data_file
+            uploaded.file_type = os.path.splitext(san_req.original_filename)[1].lower().lstrip('.')
+            uploaded.save()
+
+        # Save detections
+        pii_objects = []
+        for d in detections:
+            pii_objects.append(PIIDetection(
+                file=uploaded,
+                pii_type=d['type'],
+                original_value=d['value'],
+                start_position=d['start'],
+                end_position=d['end'],
+                line_number=d.get('line', 0),
+                detection_method=d.get('method', 'regex'),
+                confidence=d.get('confidence', 1.0),
+                sensitivity=d.get('sensitivity', 'medium'),
+            ))
+        PIIDetection.objects.bulk_create(pii_objects)
+
+        # Generate sanitized file
+        is_image = getattr(san_req, 'data_file', None) and ext in IMAGE_TYPES
+        if is_image and ocr_boxes and detections:
+            det_list = [{'type': d['type'], 'value': d['value'],
+                         'start': d['start'], 'end': d['end']}
+                        for d in detections]
+            img_buf = sanitize_image(
+                san_req.data_file.path, det_list, ocr_boxes, text, method
+            )
+            from django.core.files.base import ContentFile
+            filename = f"sanitized_{uploaded.id}_{os.path.splitext(san_req.original_filename)[0]}.png"
+            content = ContentFile(img_buf.read())
+        elif is_image:
+            with open(san_req.data_file.path, 'rb') as img_f:
+                from django.core.files.base import ContentFile
+                filename = f"sanitized_{uploaded.id}_{os.path.splitext(san_req.original_filename)[0]}.png"
+                content = ContentFile(img_f.read())
+        else:
+            filename, content = generate_sanitized_file(uploaded, sanitized_text)
+
+        sanitized = SanitizedFile(
+            original_file=uploaded,
+            method=method,
+            sanitized_text=sanitized_text,
+            created_by=request.user,
+        )
+        sanitized.sanitized_file.save(filename, content)
+        sanitized.save()
+
+        # Update the request
+        san_req.status = 'completed'
+        san_req.result_file = sanitized
+        san_req.admin_response = request.POST.get('admin_response', f'Processed with {method} method. {len(detections)} PII items found.')
+        san_req.save()
+
+        AuditLog.objects.create(
+            user=request.user, action='sanitize',
+            file=uploaded,
+            details=f'Processed sanitization request #{san_req.pk} for user {san_req.user.username}. {len(detections)} PII found, method={method}.',
+            ip_address=_ip(request),
+        )
+
+        messages.success(request, f'Request #{san_req.pk} processed successfully! {len(detections)} PII items found and sanitized.')
+
+    except Exception as e:
+        san_req.status = 'rejected'
+        san_req.admin_response = f'Processing failed: {str(e)}'
+        san_req.save()
+        messages.error(request, f'Error processing request: {str(e)}')
+
+    return redirect('manage_requests')

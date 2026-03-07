@@ -47,12 +47,68 @@ PII_PATTERNS = {
         r'[a-zA-Z0-9.\-_]+@[a-zA-Z]{2,}',
         re.IGNORECASE
     ),
+    # ── SSN (US Social Security Number) ──
+    'SSN': re.compile(
+        r'\b\d{3}[\s\-]\d{2}[\s\-]\d{4}\b'
+    ),
+    # ── Bank Account Number (Indian: 9-18 digits often labelled) ──
+    'Bank Account': re.compile(
+        r'(?:(?:Account|Acct|A/c)[\s.:]*#?\s*)(\d[\d\s\-]{7,17}\d)',
+        re.IGNORECASE
+    ),
+    # ── IFSC Code (Indian banking) ──
+    'IFSC': re.compile(
+        r'\b[A-Z]{4}0[A-Z0-9]{6}\b'
+    ),
+    # ── Device IDs (Android/iOS style) ──
+    'Device ID': re.compile(
+        r'\b(?:android|ios|device)[\-_]?[a-f0-9]{8,16}\b',
+        re.IGNORECASE
+    ),
+    # ── Fingerprint Hashes ──
+    'Fingerprint': re.compile(
+        r'\b(?:fp_hash|fingerprint)[_:]?\s*[a-f0-9]{10,64}\b',
+        re.IGNORECASE
+    ),
+    # ── Face Template IDs ──
+    'Face Template': re.compile(
+        r'\b(?:face_tmp|face_template)[_:]?\s*[a-f0-9]{6,32}\b',
+        re.IGNORECASE
+    ),
+    # ── Name (contextual: preceded by common labels) ──
+    'Name': re.compile(
+        r'(?:(?:Full\s*Name|Name|Employee\s*Name|Customer\s*Name|Patient\s*Name|Applicant)'
+        r'[\s.:]+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})',
+    ),
+    # ── Address (contextual: preceded by label, multi-word) ──
+    'Address': re.compile(
+        r'(?:(?:Address|Current\s*Address|Permanent\s*Address|Residential\s*Address)'
+        r'[\s.:]+)([A-Z0-9].*?(?:Road|Street|Lane|Nagar|Society|Colony|Ave|Blvd|Drive|Marg|Sector|Block|Floor|\d{6}|\d{5}))',
+        re.IGNORECASE
+    ),
+    # ── Driver License ──
+    'License': re.compile(
+        r'\b[A-Z]{2}[\-\s]?\d{2}[\-\s]?\d{4}[\-\s]?\d{7}\b'
+    ),
+    # ── Routing Number (US bank, 9 digits) ──
+    'Routing Number': re.compile(
+        r'(?:(?:Route|Routing)[\s.:]*#?\s*)(\d{3}[\-\s]?\d{2}[\-\s]?\d{4})',
+        re.IGNORECASE
+    ),
+    # ── Employee ID ──
+    'Employee ID': re.compile(
+        r'(?:(?:Emp\s*ID|Employee\s*ID|Emp\s*No)[\s.:]*#?\s*)([A-Z]?[\-]?\d{3,10})',
+        re.IGNORECASE
+    ),
 }
 
 # Priority order for overlapping patterns (higher-weight types checked first)
 PII_PRIORITY = [
-    'Email', 'Credit Card', 'Aadhaar', 'PAN', 'Phone',
+    'Email', 'Credit Card', 'Aadhaar', 'PAN', 'SSN', 'Phone',
     'IP Address', 'Date of Birth', 'Passport', 'UPI ID',
+    'Bank Account', 'IFSC', 'Routing Number', 'Employee ID',
+    'Device ID', 'Fingerprint', 'Face Template',
+    'License', 'Name', 'Address',
 ]
 
 # Risk weights for score calculation
@@ -70,8 +126,14 @@ PII_WEIGHTS = {
     'Address': 5,
     'SSN': 10,
     'Bank Account': 9,
+    'IFSC': 5,
     'Medical ID': 6,
     'License': 6,
+    'Device ID': 4,
+    'Fingerprint': 7,
+    'Face Template': 7,
+    'Routing Number': 6,
+    'Employee ID': 3,
 }
 
 
@@ -96,7 +158,7 @@ def detect_pii(text, methods=None):
         return []
 
     if methods is None:
-        methods = ['regex', 'nlp', 'ml']
+        methods = ['regex', 'nlp']  # Regex + spaCy NLP (both instant)
 
     all_detections = []
 
@@ -168,21 +230,32 @@ def _detect_regex(text):
                 hi = mid - 1
         return lo
 
+    # Patterns that use capture groups — extract group(1) as the value
+    GROUP_PATTERNS = {'Bank Account', 'Name', 'Address', 'Routing Number', 'Employee ID'}
+
     for pii_type in PII_PRIORITY:
-        pattern = PII_PATTERNS[pii_type]
+        pattern = PII_PATTERNS.get(pii_type)
+        if pattern is None:
+            continue
+
         for match in pattern.finditer(text):
-            start, end = match.start(), match.end()
+            # For group-based patterns, use the captured group
+            if pii_type in GROUP_PATTERNS and match.lastindex and match.lastindex >= 1:
+                value = match.group(1).strip()
+                start = match.start(1)
+                end = match.end(1)
+            else:
+                value = match.group()
+                start = match.start()
+                end = match.end()
+
             if any(pos in occupied for pos in range(start, end)):
                 continue
-
-            value = match.group()
 
             # Additional validation
             if pii_type == 'Aadhaar':
                 digits = re.sub(r'[\s\-]', '', value)
                 if len(digits) != 12:
-                    continue
-                if len(digits) > 12:
                     continue
             if pii_type == 'Credit Card':
                 digits = re.sub(r'[\s\-]', '', value)
@@ -196,6 +269,21 @@ def _detect_regex(text):
                     continue
             if pii_type == 'UPI ID':
                 if '@' in value and '.' in value.split('@')[1]:
+                    continue
+            if pii_type == 'SSN':
+                # Validate SSN: area (001-899, not 666), group (01-99), serial (0001-9999)
+                parts = re.split(r'[\s\-]', value)
+                if len(parts) == 3:
+                    area = int(parts[0])
+                    if area == 0 or area == 666 or area >= 900:
+                        continue
+            if pii_type == 'Name':
+                # Skip very short names (likely false positives)
+                if len(value) < 4:
+                    continue
+            if pii_type == 'Bank Account':
+                digits = re.sub(r'[\s\-]', '', value)
+                if len(digits) < 9 or len(digits) > 18:
                     continue
 
             for pos in range(start, end):

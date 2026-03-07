@@ -91,9 +91,14 @@ class SanitizedFile(models.Model):
         ('redaction', 'Redaction'),
         ('tokenization', 'Tokenization'),
     ]
+    DETECTION_SOURCE_CHOICES = [
+        ('regex', 'Regex'),
+        ('ner_ml', 'NER / ML (Deep Scan)'),
+    ]
     original_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='sanitized_versions')
     sanitized_file = models.FileField(upload_to='sanitized/%Y/%m/')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES)
+    detection_source = models.CharField(max_length=10, choices=DETECTION_SOURCE_CHOICES, default='regex')
     sanitized_text = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -134,3 +139,37 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp}] {self.user} → {self.get_action_display()}"
+
+
+class SanitizationRequest(models.Model):
+    """User-submitted request for data sanitization by an admin."""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+    ]
+    METHOD_CHOICES = [
+        ('masking', 'Masking'),
+        ('redaction', 'Redaction'),
+        ('tokenization', 'Tokenization'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sanitization_requests')
+    data_text = models.TextField(blank=True, default='')
+    data_file = models.FileField(upload_to='requests/%Y/%m/', blank=True, null=True)
+    original_filename = models.CharField(max_length=255, blank=True, default='')
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='redaction')
+    note = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_response = models.TextField(blank=True, default='')
+    result_file = models.ForeignKey('SanitizedFile', on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'nulify_sanitization_request'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Request #{self.pk} by {self.user.username} ({self.get_status_display()})"
+

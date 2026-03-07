@@ -1,11 +1,17 @@
 """
 Text Extraction Engine — Extract text content from multiple file formats.
-Supports: PDF, DOCX, TXT, CSV, SQL, JSON
+Supports: PDF, DOCX, TXT, CSV, SQL, JSON, Images (PNG, JPG, JPEG, BMP, TIFF, WEBP)
 """
 
 import os
 import csv
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Image file types supported by OCR
+IMAGE_TYPES = {'png', 'jpg', 'jpeg', 'bmp', 'tiff', 'webp'}
 
 
 def extract_text(file_path, file_type):
@@ -20,9 +26,15 @@ def extract_text(file_path, file_type):
         'docx': extract_from_docx,
         'txt': extract_from_txt,
         'csv': extract_from_csv,
+        'xlsx': extract_from_xlsx,
         'sql': extract_from_sql,
         'json': extract_from_json,
     }
+
+    # Image types → OCR extraction (text only, no boxes)
+    if file_type in IMAGE_TYPES:
+        text, _boxes = extract_from_image(file_path)
+        return text
 
     extractor = extractors.get(file_type)
     if not extractor:
@@ -102,6 +114,28 @@ def extract_from_csv(file_path):
     raise ValueError("Unable to decode the CSV file with supported encodings")
 
 
+def extract_from_xlsx(file_path):
+    """Extract text from Excel (.xlsx) files using openpyxl."""
+    try:
+        from openpyxl import load_workbook
+    except ImportError:
+        raise ImportError("openpyxl is required for XLSX processing. Install with: pip install openpyxl")
+
+    wb = load_workbook(file_path, read_only=True, data_only=True)
+    text_parts = []
+
+    for sheet in wb.worksheets:
+        if len(wb.worksheets) > 1:
+            text_parts.append(f"--- Sheet: {sheet.title} ---")
+        for row in sheet.iter_rows(values_only=True):
+            cells = [str(cell) if cell is not None else '' for cell in row]
+            if any(c.strip() for c in cells):
+                text_parts.append(' | '.join(cells))
+
+    wb.close()
+    return '\n'.join(text_parts)
+
+
 def extract_from_sql(file_path):
     """Extract text from SQL dump files."""
     return extract_from_txt(file_path)
@@ -127,3 +161,102 @@ def _flatten_json(obj, parts, prefix=''):
             _flatten_json(item, parts, prefix)
     else:
         parts.append(f"{prefix}{obj}")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  IMAGE / OCR EXTRACTION
+# ══════════════════════════════════════════════════════════════════════
+
+def _configure_tesseract():
+    """Auto-detect Tesseract binary on Windows."""
+    import shutil
+    if shutil.which('tesseract'):
+        return  # Already on PATH
+
+    # Common Windows install paths
+    common_paths = [
+        r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+        r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+        os.path.expanduser(r'~\AppData\Local\Tesseract-OCR\tesseract.exe'),
+    ]
+    for path in common_paths:
+        if os.path.isfile(path):
+            import pytesseract
+            pytesseract.pytesseract.tesseract_cmd = path
+            logger.info(f"Tesseract found at: {path}")
+            return
+
+    logger.warning("Tesseract OCR not found. Image processing may fail.")
+
+
+def extract_from_image(file_path):
+    """
+    Extract text and word-level bounding boxes from an image using OCR.
+    Returns (text, boxes) where boxes is a list of dicts:
+        [{'text': str, 'x': int, 'y': int, 'w': int, 'h': int, 'conf': float}]
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        raise ImportError(
+            "pytesseract and Pillow are required for image processing. "
+            "Install with: pip install pytesseract Pillow"
+        )
+
+    _configure_tesseract()
+
+    img = Image.open(file_path)
+
+    # Get word-level data with bounding boxes
+    data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+
+    boxes = []
+    text_parts = []
+    current_line = -1
+    line_words = []
+
+    for i in range(len(data['text'])):
+        word = data['text'][i].strip()
+        conf = int(data['conf'][i]) if data['conf'][i] != '-1' else 0
+        line_num = data['line_num'][i]
+
+        if word and conf > 20:  # Filter low-confidence noise
+            boxes.append({
+                'text': word,
+                'x': data['left'][i],
+                'y': data['top'][i],
+                'w': data['width'][i],
+                'h': data['height'][i],
+                'conf': conf / 100.0,
+            })
+
+            if line_num != current_line:
+                if line_words:
+                    text_parts.append(' '.join(line_words))
+                line_words = [word]
+                current_line = line_num
+            else:
+                line_words.append(word)
+
+    # Flush last line
+    if line_words:
+        text_parts.append(' '.join(line_words))
+
+    full_text = '\n'.join(text_parts)
+    return full_text, boxes
+
+
+def extract_text_with_boxes(file_path, file_type):
+    """
+    Wrapper that returns (text, boxes) for images, or (text, None) for other files.
+    Used by the upload view to get bounding box data for image sanitization.
+    """
+    file_type = file_type.lower().strip('.')
+
+    if file_type in IMAGE_TYPES:
+        return extract_from_image(file_path)
+
+    # Non-image: standard extraction, no boxes
+    text = extract_text(file_path, file_type)
+    return text, None

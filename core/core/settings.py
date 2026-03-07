@@ -119,7 +119,17 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ── Ollama Configuration (NLP + ML Engines) ────────────────────────
 OLLAMA_BASE_URL = 'http://localhost:11434'
-OLLAMA_NLP_MODEL = 'llama3.2:3b'   # Model for NLP-based NER detection
-OLLAMA_ML_MODEL = 'llama3.2:3b'    # Model for ML confidence scoring
-OLLAMA_TIMEOUT = 60             # Request timeout in seconds
+OLLAMA_NLP_MODEL = 'qwen2.5:0.5b'   # Model for NLP-based NER detection
+OLLAMA_ML_MODEL = 'qwen2.5:0.5b'    # Model for ML confidence scoring
+OLLAMA_TIMEOUT = 30              # Request timeout in seconds
+
+# ── Security & Encryption in Transit (HTTPS) ───────────────────────
+# In a production environment with a reverse proxy, set these:
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 

@@ -1,5 +1,6 @@
 {% extends 'nulify/base.html' %}
 {% load static %}
+{% load nulify_filters %}
 
 {% block title %}{{ file.original_filename }} — Results{% endblock %}
 {% block page_title %}Scan Results{% endblock %}
@@ -57,12 +58,25 @@
         </div>
         {% endif %}
 
-        {% if user.role == 'admin' %}
-        <!-- PII Highlighted Preview -->
+        {% if is_admin %}
+        <!-- PII Highlighted Preview (Admin Only) -->
         <div class="card">
-            <div class="card-header"><h3>PII Preview (Highlighted)</h3></div>
+            <div class="card-header">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    PII Preview {% if is_image %}(Original Image){% else %}(Highlighted){% endif %}
+                </h3>
+                <span class="badge badge-danger">Admin Only</span>
+            </div>
             <div class="card-body">
-                <div class="text-preview">{{ highlighted_text|safe }}</div>
+                {% if is_image %}
+                <div style="text-align:center;">
+                    <img src="{{ file.file.url }}" alt="Original image with PII" style="max-width:100%;height:auto;border-radius:8px;border:1px solid var(--color-border);">
+                    <p class="text-sm text-muted" style="margin-top:8px;">⚠️ Original image — PII visible</p>
+                </div>
+                {% else %}
+                <div class="text-preview">{{ highlighted_text|safe|render_tables }}</div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -70,9 +84,37 @@
         <!-- Sanitized Output -->
         {% if sanitized %}
         <div class="card">
-            <div class="card-header"><h3>Sanitized Output</h3></div>
+            <div class="card-header">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+                    Sanitized Output
+                </h3>
+                <div style="display:flex;gap:6px;">
+                    <span class="badge badge-success">PII-Free</span>
+                    {% if is_image %}<span class="badge badge-cyan">Image</span>{% endif %}
+                </div>
+            </div>
             <div class="card-body">
-                <div class="text-preview">{{ sanitized.sanitized_text }}</div>
+                {% if is_image %}
+                <div style="text-align:center;">
+                    <img src="{{ sanitized.sanitized_file.url }}" alt="Sanitized image" style="max-width:100%;height:auto;border-radius:8px;border:1px solid var(--color-border);">
+                    <p class="text-sm text-muted" style="margin-top:8px;">✅ PII regions have been redacted (blacked out)</p>
+                </div>
+                {% else %}
+                <div class="text-preview">{{ sanitized.sanitized_text|render_tables }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not is_admin and not sanitized %}
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;margin-bottom:12px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <h3>Sanitized version not yet available</h3>
+                    <p>An admin needs to process this file first</p>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -119,7 +161,11 @@
                     <div class="detection-item">
                         <div class="d-flex align-center gap-8" style="flex:1;min-width:0;">
                             <span class="badge badge-purple">{{ d.pii_type }}</span>
+                            {% if is_admin %}
                             <span class="detection-value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ d.original_value }}">{{ d.original_value|truncatechars:20 }}</span>
+                            {% else %}
+                            <span class="detection-value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-muted);" title="Hidden — Admin access required">•••••••</span>
+                            {% endif %}
                         </div>
                         <div class="d-flex align-center gap-6">
                             {% if d.detection_method == 'regex' %}
@@ -141,17 +187,40 @@
             </div>
         </div>
 
+        <!-- Deep Scan with AI (Admin Only) -->
+        {% if is_admin %}
+        <div class="card" style="margin-bottom:0;">
+            <div class="card-header">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;"><path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    Deep Scan with AI
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-sm text-muted" style="margin-bottom:12px;">Run enhanced detection using spaCy NER + Ollama ML for deeper PII analysis.</p>
+                <button type="button" id="deep-scan-btn" class="btn btn-primary w-full" onclick="runDeepScan({{ file.id }})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span id="deep-scan-text">Run Deep Scan</span>
+                </button>
+                <div id="deep-scan-result" style="margin-top:10px;display:none;"></div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Downloads -->
         <div class="card-cyber" style="padding:24px;">
             <h4 style="margin-bottom:16px;">Downloads</h4>
             <div class="d-flex flex-col gap-8">
                 {% for s in sanitized_versions %}
-                <a href="{% url 'download_sanitized' s.id %}" class="btn btn-primary w-full">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Sanitized ({{ s.get_method_display }})
+                <a href="{% url 'download_sanitized' s.id %}" class="btn {% if s.detection_source == 'ner_ml' %}btn-primary{% else %}btn-primary{% endif %} w-full" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:0.9rem;{% if s.detection_source == 'ner_ml' %}background:linear-gradient(135deg,#0d9488,#14b8a6);{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.3;">
+                        <span>Sanitized ({{ s.get_method_display }})</span>
+                        <span style="font-size:0.7rem;opacity:0.85;">{% if s.detection_source == 'ner_ml' %}🤖 NER / ML Detection{% else %}⚡ Regex Detection{% endif %}</span>
+                    </span>
                 </a>
                 {% endfor %}
-                {% if user.role == 'admin' %}
+                {% if is_admin %}
                 <a href="{% url 'download_original' file.id %}" class="btn btn-secondary w-full">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                     Original File
@@ -163,6 +232,76 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Re-Sanitize (Admin Only) -->
+        {% if is_admin %}
+        <div class="card" style="margin-top:8px;">
+            <div class="card-header"><h3>Re-Sanitize</h3></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'file_detail' file.id %}">
+                    {% csrf_token %}
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label for="resanitize-method" class="text-sm">Choose a different method:</label>
+                        <select name="resanitize_method" id="resanitize-method" class="form-control">
+                            <option value="redaction">Redaction — [REDACTED]</option>
+                            <option value="masking">Masking — Partial reveal</option>
+                            <option value="tokenization">Tokenization — Unique tokens</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-full">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                        Re-Sanitize File
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runDeepScan(fileId) {
+    const btn = document.getElementById('deep-scan-btn');
+    const textEl = document.getElementById('deep-scan-text');
+    const resultEl = document.getElementById('deep-scan-result');
+
+    btn.disabled = true;
+    textEl.textContent = 'Scanning…';
+    btn.style.opacity = '0.7';
+    resultEl.style.display = 'none';
+
+    fetch(`/files/${fileId}/deep-scan/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            resultEl.innerHTML = `<div class="badge badge-success" style="display:inline-block;margin-bottom:6px;">✓ ${data.message}</div>`;
+            resultEl.style.display = 'block';
+            textEl.textContent = 'Done! Reloading…';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            resultEl.innerHTML = `<div class="badge badge-danger" style="display:inline-block;">✗ ${data.error || 'Scan failed'}</div>`;
+            resultEl.style.display = 'block';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            textEl.textContent = 'Retry Deep Scan';
+        }
+    })
+    .catch(err => {
+        resultEl.innerHTML = `<div class="badge badge-danger" style="display:inline-block;">✗ ${err.message}</div>`;
+        resultEl.style.display = 'block';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        textEl.textContent = 'Retry Deep Scan';
+    });
+}
+</script>
 {% endblock %}
