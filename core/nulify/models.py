@@ -1,5 +1,38 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from cryptography.fernet import Fernet
+from django.conf import settings
+
+class EncryptedTextField(models.TextField):
+    description = "An encrypted text field"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_internal_type(self):
+        return "TextField"
+
+    def from_db_value(self, value, expression, connection):
+        if value is None or value == '':
+            return value
+        try:
+            f = Fernet(settings.ENCRYPTION_KEY)
+            return f.decrypt(value.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return value # Fallback if unencrypted
+
+    def to_python(self, value):
+        return value
+
+    def get_prep_value(self, value):
+        value = super().get_prep_value(value)
+        if value is None or value == '':
+            return value
+        try:
+            f = Fernet(settings.ENCRYPTION_KEY)
+            return f.encrypt(str(value).encode('utf-8')).decode('utf-8')
+        except Exception:
+            return value
 
 
 class User(AbstractUser):
@@ -36,7 +69,7 @@ class UploadedFile(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     risk_score = models.IntegerField(default=0)
-    extracted_text = models.TextField(blank=True, default='')
+    extracted_text = EncryptedTextField(blank=True, default='')
     pii_count = models.IntegerField(default=0)
 
     class Meta:
@@ -69,7 +102,7 @@ class PIIDetection(models.Model):
     ]
     file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='detections')
     pii_type = models.CharField(max_length=50)
-    original_value = models.CharField(max_length=500)
+    original_value = EncryptedTextField(blank=True, default='')
     start_position = models.IntegerField()
     end_position = models.IntegerField()
     line_number = models.IntegerField(default=0)
@@ -99,7 +132,7 @@ class SanitizedFile(models.Model):
     sanitized_file = models.FileField(upload_to='sanitized/%Y/%m/')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES)
     detection_source = models.CharField(max_length=10, choices=DETECTION_SOURCE_CHOICES, default='regex')
-    sanitized_text = models.TextField(blank=True, default='')
+    sanitized_text = EncryptedTextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
@@ -155,13 +188,13 @@ class SanitizationRequest(models.Model):
         ('tokenization', 'Tokenization'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sanitization_requests')
-    data_text = models.TextField(blank=True, default='')
+    data_text = EncryptedTextField(blank=True, default='')
     data_file = models.FileField(upload_to='requests/%Y/%m/', blank=True, null=True)
     original_filename = models.CharField(max_length=255, blank=True, default='')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='redaction')
     note = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    admin_response = models.TextField(blank=True, default='')
+    admin_response = EncryptedTextField(blank=True, default='')
     result_file = models.ForeignKey('SanitizedFile', on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

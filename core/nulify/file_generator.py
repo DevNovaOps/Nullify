@@ -1,14 +1,19 @@
 """
 File Generator — Generate sanitized output files and PDF reports.
+Supports in-place PDF redaction using PyMuPDF to preserve original formatting.
 """
 
+import logging
 from io import BytesIO
 from django.core.files.base import ContentFile
 
+logger = logging.getLogger(__name__)
 
-def generate_sanitized_file(uploaded_file, sanitized_text):
+
+def generate_sanitized_file(uploaded_file, sanitized_text, detections=None, method='redaction'):
     """
     Create a sanitized file in the same format as the original.
+    For PDFs: uses PyMuPDF to redact PII in-place, preserving tables and layout.
     Returns (filename, ContentFile) tuple for saving to SanitizedFile.sanitized_file.
     """
     base_name = uploaded_file.original_filename.rsplit('.', 1)[0]
@@ -18,9 +23,35 @@ def generate_sanitized_file(uploaded_file, sanitized_text):
     if file_type == 'docx':
         try:
             from docx import Document
-            doc = Document()
-            for line in sanitized_text.split('\n'):
-                doc.add_paragraph(line)
+            doc = Document(uploaded_file.file.path)
+            # In-place replacement in paragraphs
+            if detections:
+                from .sanitizer import _get_replacement
+                for para in doc.paragraphs:
+                    for d in detections:
+                        original_val = d['value']
+                        if original_val in para.text:
+                            replacement = _get_replacement(original_val, d['type'], method)
+                            for run in para.runs:
+                                if original_val in run.text:
+                                    run.text = run.text.replace(original_val, replacement)
+                # Also handle tables in DOCX
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            for d in detections:
+                                original_val = d['value']
+                                if original_val in cell.text:
+                                    replacement = _get_replacement(original_val, d['type'], method)
+                                    for para in cell.paragraphs:
+                                        for run in para.runs:
+                                            if original_val in run.text:
+                                                run.text = run.text.replace(original_val, replacement)
+            else:
+                # Fallback: rebuild from sanitized text
+                doc = Document()
+                for line in sanitized_text.split('\n'):
+                    doc.add_paragraph(line)
             buf = BytesIO()
             doc.save(buf)
             buf.seek(0)
@@ -29,92 +60,15 @@ def generate_sanitized_file(uploaded_file, sanitized_text):
         except ImportError:
             pass  # Fall through to text output
 
-    # ── PDF output ──
+    # ── PDF output (in-place redaction with PyMuPDF) ──
     if file_type == 'pdf':
-        try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.units import cm
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib.styles import getSampleStyleSheet
-            buf = BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=A4,
-                                    topMargin=2*cm, bottomMargin=2*cm,
-                                    leftMargin=2*cm, rightMargin=2*cm)
-            styles = getSampleStyleSheet()
-            story = []
-
-            # Split lines and detect table rows (pipe-delimited)
-            lines = sanitized_text.split('\n')
-            i = 0
-            while i < len(lines):
-                line = lines[i]
-                # Check if this line looks like a table row (contains |)
-                if '|' in line and line.strip():
-                    # Collect consecutive pipe-delimited rows as a table
-                    table_rows = []
-                    while i < len(lines) and '|' in lines[i] and lines[i].strip():
-                        cells = [c.strip() for c in lines[i].split('|')]
-                        # Remove empty leading/trailing cells from split
-                        cells = [c for c in cells if c or len(cells) <= 3]
-                        if cells:
-                            table_rows.append(cells)
-                        i += 1
-
-                    if table_rows:
-                        # Normalize column count
-                        max_cols = max(len(row) for row in table_rows)
-                        for row in table_rows:
-                            while len(row) < max_cols:
-                                row.append('')
-
-                        # Calculate column widths
-                        available_width = A4[0] - 4 * cm
-                        col_width = available_width / max_cols if max_cols > 0 else available_width
-
-                        # Wrap cell text in Paragraphs for text wrapping
-                        para_rows = []
-                        for row in table_rows:
-                            para_row = [Paragraph(
-                                cell.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'),
-                                styles['Normal']
-                            ) for cell in row]
-                            para_rows.append(para_row)
-
-                        t = Table(para_rows, colWidths=[col_width] * max_cols)
-                        table_style = [
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
-                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                            ('TOPPADDING', (0, 0), (-1, -1), 4),
-                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                        ]
-                        # Style first row as header
-                        if len(para_rows) > 1:
-                            table_style.extend([
-                                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#7B61FF')),
-                                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                                ('ROWBACKGROUNDS', (0, 1), (-1, -1),
-                                 [colors.white, colors.HexColor('#F8FAFC')]),
-                            ])
-                        t.setStyle(TableStyle(table_style))
-                        story.append(Spacer(1, 6))
-                        story.append(t)
-                        story.append(Spacer(1, 6))
-                else:
-                    escaped = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                    story.append(Paragraph(escaped, styles['Normal']))
-                    story.append(Spacer(1, 4))
-                    i += 1
-
-            doc.build(story)
-            buf.seek(0)
-            filename = f"sanitized_{uploaded_file.id}_{base_name}.pdf"
-            return filename, ContentFile(buf.read())
-        except ImportError:
-            pass  # Fall through to text output
+        result = _generate_pdf_inplace(uploaded_file, detections, method, base_name)
+        if result:
+            return result
+        # Fallback to ReportLab rebuild if PyMuPDF fails
+        result = _generate_pdf_reportlab(uploaded_file, sanitized_text, base_name)
+        if result:
+            return result
 
     # ── SQL output ──
     if file_type == 'sql':
@@ -161,6 +115,90 @@ def generate_sanitized_file(uploaded_file, sanitized_text):
     filename = f"sanitized_{uploaded_file.id}_{base_name}.txt"
     content = ContentFile(sanitized_text.encode('utf-8'))
     return filename, content
+
+def _generate_pdf_inplace(uploaded_file, detections, method, base_name):
+    """
+    Use PyMuPDF (fitz) to redact PII directly on the original PDF.
+    This preserves ALL original formatting: tables, borders, images, fonts.
+    """
+    if not detections:
+        # No PII found — just copy the original
+        try:
+            with open(uploaded_file.file.path, 'rb') as f:
+                filename = f"sanitized_{uploaded_file.id}_{base_name}.pdf"
+                return filename, ContentFile(f.read())
+        except Exception:
+            return None
+
+    try:
+        import fitz  # PyMuPDF
+        from .sanitizer import _get_replacement
+    except ImportError:
+        logger.warning("PyMuPDF not installed, falling back to ReportLab")
+        return None
+
+    try:
+        doc = fitz.open(uploaded_file.file.path)
+
+        # Build replacement map: original_value → replacement_value
+        replacements = {}
+        for d in detections:
+            original_val = d['value']
+            if original_val not in replacements:
+                replacements[original_val] = _get_replacement(original_val, d['type'], method)
+
+        # Sort by length descending to replace longer matches first
+        sorted_originals = sorted(replacements.keys(), key=len, reverse=True)
+
+        for page in doc:
+            for original_val in sorted_originals:
+                replacement_val = replacements[original_val]
+                # Search for all instances of this PII value on this page
+                text_instances = page.search_for(original_val)
+                for inst in text_instances:
+                    # Add redaction annotation at the exact position
+                    page.add_redact_annot(inst, text=replacement_val, fontsize=0,
+                                         fill=(1, 1, 1))  # white background
+                # Apply all redactions on this page
+                if text_instances:
+                    page.apply_redactions()
+
+        buf = BytesIO()
+        doc.save(buf)
+        doc.close()
+        buf.seek(0)
+        filename = f"sanitized_{uploaded_file.id}_{base_name}.pdf"
+        return filename, ContentFile(buf.read())
+
+    except Exception as e:
+        logger.error(f"PyMuPDF in-place redaction failed: {e}")
+        return None
+
+
+def _generate_pdf_reportlab(uploaded_file, sanitized_text, base_name):
+    """Fallback: rebuild PDF from sanitized text using ReportLab."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+
+        buf = BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                topMargin=2*cm, bottomMargin=2*cm,
+                                leftMargin=2*cm, rightMargin=2*cm)
+        styles = getSampleStyleSheet()
+        story = []
+        for line in sanitized_text.split('\n'):
+            escaped = line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(escaped, styles['Normal']))
+            story.append(Spacer(1, 4))
+        doc.build(story)
+        buf.seek(0)
+        filename = f"sanitized_{uploaded_file.id}_{base_name}.pdf"
+        return filename, ContentFile(buf.read())
+    except ImportError:
+        return None
 
 
 def generate_report_pdf(uploaded_file, detections, sanitized_file=None):

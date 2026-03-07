@@ -9,6 +9,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-b*&s-6^uknz^v@z$14$!*5t()0so^u%&y1jam!r32lzf#ps63_'
+# Auto-generated 32-urlsafe-base64 key for Fernet AES
+ENCRYPTION_KEY = b'rQ2q4k3XnF_U73O0yU9_I_Z-1sK93n2lB0K4v0q0N0g='
 
 DEBUG = True
 

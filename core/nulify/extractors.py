@@ -44,11 +44,74 @@ def extract_text(file_path, file_type):
 
 
 def extract_from_pdf(file_path):
-    """Extract text from PDF using PyPDF2."""
+    """Extract text and properly formatted tables from PDF using pdfplumber."""
+    try:
+        import pdfplumber
+    except ImportError:
+        return _extract_from_pdf_fallback(file_path)
+
+    text_parts = []
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            tables = page.find_tables()
+            table_extractor_settings = {}
+            if not tables:
+                # Try text alignment heuristic for borderless tables
+                table_extractor_settings = {"vertical_strategy": "text", "horizontal_strategy": "text"}
+                tables = page.find_tables(table_settings=table_extractor_settings)
+            
+            if not tables:
+                text = page.extract_text(layout=True)
+                if text:
+                    import re
+                    processed_lines = []
+                    for line in text.split('\n'):
+                        stripped_line = line.strip()
+                        # If a line has gaps of 3 or more spaces between words, it's a borderless column
+                        if re.search(r'   +', stripped_line):
+                            table_line = re.sub(r'   +', ' | ', stripped_line)
+                            table_line = table_line.strip('|').strip()
+                            processed_lines.append(f"| {table_line} |")
+                        else:
+                            processed_lines.append(stripped_line)
+                    text_parts.append('\n'.join(processed_lines))
+                continue
+                
+            # Filter out text that belongs to a table
+            table_bboxes = [t.bbox for t in tables]
+            
+            def not_in_table(obj):
+                if 'x0' not in obj or 'top' not in obj:
+                    return True
+                for (x0, top, x1, bottom) in table_bboxes:
+                    # check if objection center is inside table bbox
+                    cx = (obj['x0'] + obj['x1']) / 2
+                    cy = (obj['top'] + obj['bottom']) / 2
+                    if x0 <= cx <= x1 and top <= cy <= bottom:
+                        return False
+                return True
+
+            non_table_page = page.filter(not_in_table)
+            text = non_table_page.extract_text()
+            if text:
+                text_parts.append(text)
+                
+            for table in page.extract_tables(table_settings=table_extractor_settings):
+                for row in table:
+                    clean_row = [str(cell).strip().replace('\n', ' ') if cell else "" for cell in row]
+                    if any(clean_row):
+                        text_parts.append(' | '.join(clean_row))
+                text_parts.append('')
+
+    return '\n'.join(text_parts)
+
+
+def _extract_from_pdf_fallback(file_path):
+    """Fallback text extraction if pdfplumber is not installed."""
     try:
         from PyPDF2 import PdfReader
     except ImportError:
-        raise ImportError("PyPDF2 is required for PDF processing. Install with: pip install PyPDF2")
+        raise ImportError("pdfplumber or PyPDF2 is required for PDF processing.")
 
     reader = PdfReader(file_path)
     text_parts = []

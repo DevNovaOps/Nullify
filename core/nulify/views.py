@@ -527,7 +527,7 @@ def upload_file(request):
                         filename = f"sanitized_{uploaded.id}_{os.path.splitext(f.name)[0]}.png"
                         content = ContentFile(img_f.read())
                 else:
-                    filename, content = generate_sanitized_file(uploaded, sanitized_text)
+                    filename, content = generate_sanitized_file(uploaded, sanitized_text, detections, method)
 
                 sanitized = SanitizedFile(
                     original_file=uploaded,
@@ -661,7 +661,7 @@ def file_detail(request, file_id):
                     filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
                     content = ContentFile(img_f.read())
             else:
-                filename, content = generate_sanitized_file(uploaded, new_sanitized_text)
+                filename, content = generate_sanitized_file(uploaded, new_sanitized_text, det_list_raw, new_method)
 
             new_san = SanitizedFile(
                 original_file=uploaded,
@@ -807,7 +807,7 @@ def deep_scan(request, file_id):
                 filename = f"sanitized_{uploaded.id}_{os.path.splitext(uploaded.original_filename)[0]}.png"
                 content = ContentFile(img_f.read())
         else:
-            filename, content = generate_sanitized_file(uploaded, sanitized_text)
+            filename, content = generate_sanitized_file(uploaded, sanitized_text, det_list, method)
 
         new_san = SanitizedFile(
             original_file=uploaded,
@@ -1403,7 +1403,7 @@ def process_request(request, request_id):
                 filename = f"sanitized_{uploaded.id}_{os.path.splitext(san_req.original_filename)[0]}.png"
                 content = ContentFile(img_f.read())
         else:
-            filename, content = generate_sanitized_file(uploaded, sanitized_text)
+            filename, content = generate_sanitized_file(uploaded, sanitized_text, detections, method)
 
         sanitized = SanitizedFile(
             original_file=uploaded,
